@@ -1,0 +1,7 @@
+1 b a
+2 c a b e
+3 a f
+4 c d a
+5 c d b
+6 g c a
+7 e d b a
