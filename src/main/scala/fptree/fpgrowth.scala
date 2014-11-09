@@ -50,6 +50,7 @@ object fpgrowth {
     val supBcast = sc.broadcast(sup)
     val miBcast = sc.broadcast(mi)
     val rhoBcast = sc.broadcast(rho)
+    val nTransBcast = sc.broadcast(transCount)
 
     // build local fp-tree based on a subset of transactions
     def mkLocalTrees(transIter: Iterator[Array[String]]): Iterator[FPTree] = {
@@ -59,9 +60,9 @@ object fpgrowth {
       Iterator(tree)
     }
 
-    println("Transactions")
-    transactionsRDD.foreach {trans => println(trans.mkString(", "))}
-    println()
+    //println("Transactions")
+    //transactionsRDD.foreach {trans => println(trans.mkString(", "))}
+    //println()
 
     // here we have local trees
     val localTreesRDD = transactionsRDD.mapPartitions (mkLocalTrees)
@@ -94,12 +95,12 @@ object fpgrowth {
 
     val fpTreesRDD = miTreesRDD.mapPartitions (mkFpTree).
     persist
-    println("fpTreesRDD count = " + fpTreesRDD.count)
+    //println("fpTreesRDD count = " + fpTreesRDD.count)
 
     // tests
     
     //localTreesRDD.foreach {tree => println("\n\n" + tree)}
-    fpTreesRDD.foreach {tree => println("\n\n" + tree)}
+    //fpTreesRDD.foreach {tree => println("\n\n" + tree)}
     
     val rhoTreesRDD = fpTreesRDD.flatMap (_.rhoTrees).
     partitionBy(TreePartitioner(numberOfPartitions)).
@@ -133,99 +134,23 @@ object fpgrowth {
     println("finalFpTreesRDD count = " + finalFpTreesRDD.count)
     finalFpTreesRDD.foreach {tree => println("\n" + tree)}
 
+    val itemSetsRDD = finalFpTreesRDD.map (_.fpGrowth()).
+    flatMap (itemSet => itemSet).
+    map {case (it, count) => (it.sorted.mkString(" "), count / nTransBcast.value.toDouble)}.
+    sortByKey().
+    persist
+
+    println("\nItemSets ::: " + itemSetsRDD.count)
+    itemSetsRDD.foreach {
+      case (it, perc) =>
+        println(it + "\t" + "%.6f".format(perc))
+    }
+
     // ++++++++++++++ version using reduceByKey (barrier-like)
     //val finalFpTreesRDD = rhoTreesRDD.groupByKey.map (mkCfpTree).
     //persist
     //println("finalFpTreesRDD count = " + finalFpTreesRDD.count)
     //finalFpTreesRDD.foreach {tree => println("\n" + tree)}
-
-    
-  }
-
-  def fpGrowth(
-      tree: FPTree,
-      freq: scala.collection.immutable.Map[String,Int],
-      minSup: Int,
-      mi: Int) = {
-
-    // FP-Growth
-    def fpGrowthRec(
-        tree: FPTree,
-        freq: scala.collection.immutable.Map[String,Int],
-        prefix: Queue[String],
-        minSup: Int,
-        mi: Int,
-        rho: Int,
-        table: Map[String,Node]): List[(Queue[String],Int)] = tree.root.singlePath match {
-
-      case p :: path => 
-        val powerSet = fpgrowth.powerNoEmptySet[Node](path)
-        val newPatterns = powerSet.map(s =>
-            (
-              //prefix.enqueue(
-              //  fpgrowth.
-              //  sortTransactionByFrequency(s.map(n => n.itemId), table, minSup).
-              //  reduceLeft(_ + _)
-              //  )
-              prefix.enqueue(s.map(node => node.itemId)),
-              s.map(node => (node.count, node.itemId)).min._1
-            )
-          )
-        newPatterns
-
-      case _ => 
-        val sortedFList = table.map(e => e._2).toList.
-        filter(_.count >= minSup).
-        sortWith((a,b) => (a.count compare b.count) < 0)
-
-        var newPatterns = List[(Queue[String],Int)]()
-
-        // sortedFList has Nodes
-        sortedFList.foreach {it =>
-          var newTransactions = List[(Array[String],Int)]()
-          println("Projecting over " + (prefix.enqueue(it.itemId)) )
-
-          val newPatt = (prefix.enqueue(it.itemId), it.count)
-          newPatterns = List(newPatt) ::: newPatterns
-          var branch = it
-
-          while (branch != null) {
-            def makePath(curr: Node): Array[String] = {
-              if (curr.isRoot) Array[String]()
-              else makePath(curr.parent) ++ Array(curr.itemId)
-            }
-            val trans = makePath(branch)
-            val count = branch.count
-            newTransactions = List((trans.take(trans.size - 1), count)) ::: newTransactions
-            branch = branch.link
-          }
-
-          println("New transactions")
-          newTransactions.foreach {trans =>
-            println(trans._1.foldLeft("")(_ + _))
-          }
-          
-          val condTree = FPTree(Node.emptyNode, freq, minSup, mi, rho)
-          val condTable = condTree.
-          buildTree(newTransactions.flatMap {case (trans, count) =>
-            (1 to count).map(_ => trans)
-          }.iterator)
-          
-          println("New Table")
-          println(condTable)
-          println("New Tree")
-          println(condTree)
-          
-          if (condTree.root.children.size > 0) {               
-            newPatterns ++= fpGrowthRec(condTree, freq, newPatt._1, minSup, mi,
-              rho, condTable)
-          }
-        }
-        println("new pattern = " + newPatterns)
-        newPatterns
-    }
-    
-    fpGrowthRec(tree, freq, Queue[String](), minSup, mi, rho, tree.table)
   }
   
   /** Itemset counting, it returns a RDD composed by (<item>, <frequency>)-like
@@ -248,18 +173,6 @@ object fpgrowth {
     (transactionsRDD,frequencyRDD)
   }
   
-  // power set, functional style
-  def power[A](set: List[A]): List[List[A]] = {
-
-    @annotation.tailrec
-    def pwr(set: List[A], acc: List[List[A]]): List[List[A]] = set match {
-      case Nil => acc
-      case a :: as => pwr(as, acc ::: (acc map (a :: _)))
-    }
-    pwr(set, Nil :: Nil)
-  }
-  def powerNoEmptySet[A](set: List[A]): List[List[A]] = power(set).drop(1)
-
   def printHelp = {
     println("Usage:\n$ ./bin/spark-submit --class fpgrowth --master local" +
       " <jar_file> <input_file> <min_support> <item_separator>\n")

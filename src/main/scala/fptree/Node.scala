@@ -40,15 +40,7 @@ case class Node(var itemId: String,
     if (children.contains(childId)) children(childId)
     else null
 
-  def singlePath = {
-    def singlePathRec(node: Node, path: List[Node]): 
-        List[Node] = node.children.size match {
-      case 0 => path ::: List(node)
-      case 1 => singlePathRec(node.children.values.iterator.next, path ::: List(node))
-      case _ => Nil
-    }
-    singlePathRec(this, Nil)
-  }
+  
 
   def insertTrans(
       trans: Array[String],
