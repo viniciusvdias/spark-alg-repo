@@ -6,16 +6,16 @@ import scala.collection.mutable.Set
 
 case class FPTree(
     var root: Node,
-    var freq: Map[String, Int],
+    var freq: Map[Int, Int],
     var sup: Int,
     var mi: Int,
     var rho: Int,
-    var itemSet: Stack[String] = Stack[String]()) extends Serializable {
+    var itemSet: Stack[Int] = Stack[Int]()) extends Serializable {
 
-  val table = scala.collection.mutable.Map[String, Node]()
+  val table = scala.collection.mutable.Map[Int, Node]()
 
   def powerSet = {
-    def powerSetRec(node: Node, pSet: ListBuffer[(Stack[String],Int)]): ListBuffer[(Stack[String],Int)] = {
+    def powerSetRec(node: Node, pSet: ListBuffer[(Stack[Int],Int)]): ListBuffer[(Stack[Int],Int)] = {
       if (node.count <= this.sup)
         pSet
       else {
@@ -62,7 +62,7 @@ case class FPTree(
   }
 
   def buildTree(
-      transIter: Iterator[Array[String]],
+      transIter: Iterator[Array[Int]],
       countIter: Iterator[Int] = Iterator.continually(1)) = {
 
     //println("build tree call")
@@ -96,7 +96,7 @@ case class FPTree(
   }
 
   def buildTreeRec(tree: Node,
-      prefix: Stack[String],
+      prefix: Stack[Int],
       subTree: Node): Unit = (prefix.head, prefix.tail) match {
 
     case (p, Stack()) => // insertion of subtree
@@ -118,7 +118,7 @@ case class FPTree(
       buildTreeRec(nextNode, ps, subTree)
   }
 
-  def buildTreeFromChunks(chunksIter: Iterator[ (Stack[String],Node) ]) = {
+  def buildTreeFromChunks(chunksIter: Iterator[ (Stack[Int],Node) ]) = {
 
     //println("build tree from chunks call")
 
@@ -134,7 +134,7 @@ case class FPTree(
     
   }
 
-  def buildCfpTreesFromChunks(prefixCfpTrees: (Stack[String], Iterable[Node])) = {
+  def buildCfpTreesFromChunks(prefixCfpTrees: (Stack[Int], Iterable[Node])) = {
     
     //println("build cfpTree from chunks call")
 
@@ -144,7 +144,7 @@ case class FPTree(
     cfpTrees.foreach {subTree =>
       //println("prefix = " + prefix.mkString(",") + "\n" + subTree)
       subTree.children.foreach {case (_,c) =>
-        buildTreeRec(this.root, Stack[String](this.root.itemId), c)
+        buildTreeRec(this.root, Stack[Int](this.root.itemId), c)
       }
       this.root.count += subTree.count
     }
@@ -153,8 +153,8 @@ case class FPTree(
   }
 
   def miTrees = {
-    def miTreesRec(prefix: Stack[String], node: Node,
-        chunks: ListBuffer[(Stack[String], Node)]): Unit = {
+    def miTreesRec(prefix: Stack[Int], node: Node,
+        chunks: ListBuffer[(Stack[Int], Node)]): Unit = {
 
       val newPrefix = prefix :+ node.itemId
 
@@ -172,19 +172,19 @@ case class FPTree(
       node.children.foreach {case (_,c) => miTreesRec(newPrefix, c, chunks)}
     }
 
-    val miChunks = ListBuffer[(Stack[String], Node)]()
+    val miChunks = ListBuffer[(Stack[Int], Node)]()
     if (this.mi <= 0)
       miChunks.append( (Stack(this.root.itemId), this.root) )
     else{
-      this.root.children.foreach {case (_,c) => miTreesRec(Stack[String](), c, miChunks)}
+      this.root.children.foreach {case (_,c) => miTreesRec(Stack[Int](), c, miChunks)}
     }
     miChunks
   }
 
   def projectTree(node: Node) = {
     
-    def makePath(leaf: Node): Array[String] = {
-      var path = scala.collection.mutable.Stack[String]()
+    def makePath(leaf: Node): Array[Int] = {
+      var path = scala.collection.mutable.Stack[Int]()
       var node = leaf
       while (!node.isRoot) {
         if (!node.parent.isRoot)
@@ -196,7 +196,7 @@ case class FPTree(
 
     val cfpTree = FPTree(Node.emptyNode, null, this.sup, this.mi,
       this.rho, this.itemSet.push(node.itemId))
-    var newTransactions = scala.collection.mutable.Stack[Array[String]]()
+    var newTransactions = scala.collection.mutable.Stack[Array[Int]]()
     var newCounts = scala.collection.mutable.Stack[Int]()
     var branch = node
 
@@ -217,7 +217,7 @@ case class FPTree(
   }
 
   def fpGrowth(
-      itemSets: ListBuffer[(Stack[String],Int)] = ListBuffer()): ListBuffer[(Stack[String],Int)] = {
+      itemSets: ListBuffer[(Stack[Int],Int)] = ListBuffer()): ListBuffer[(Stack[Int],Int)] = {
 
     if (this.root.count > this.sup) {
       if (!this.linearGraph) {
@@ -250,11 +250,11 @@ case class FPTree(
 
   }
 
-  def rhoTreesRec(prefix: Stack[String], chunks: ListBuffer[(Stack[String], Node)]): Unit = {
+  def rhoTreesRec(prefix: Stack[Int], chunks: ListBuffer[(Stack[Int], Node)]): Unit = {
     def rhoTreesRecRec(
-        prefix: Stack[String],
+        prefix: Stack[Int],
         node: Node,
-        chunks: ListBuffer[(Stack[String], Node)]): Unit = {
+        chunks: ListBuffer[(Stack[Int], Node)]): Unit = {
 
       val cfpTree = this.projectTree(node)
 
@@ -280,13 +280,13 @@ case class FPTree(
 
   def rhoTrees = {
     
-    val rhoChunks = ListBuffer[(Stack[String], Node)]()
+    val rhoChunks = ListBuffer[(Stack[Int], Node)]()
 
     // checking rho's value
     if (this.rho > 0) 
-      this.rhoTreesRec(Stack[String](), rhoChunks)
+      this.rhoTreesRec(Stack[Int](), rhoChunks)
     else
-      rhoChunks.append( (Stack[String](), this.root) )
+      rhoChunks.append( (Stack[Int](), this.root) )
 
     rhoChunks
 

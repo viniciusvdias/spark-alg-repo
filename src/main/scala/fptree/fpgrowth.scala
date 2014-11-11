@@ -41,8 +41,17 @@ object fpgrowth {
         return
     }
 
-    // item counting
-    val (transactionsRDD,frequencyRDD) = frequencyCounting
+    // frequency counting
+    val sepBcast = sc.broadcast(sep)
+    val linesRDD = sc.textFile(inputFile)
+
+    val transactionsRDD = linesRDD.
+    map(l => (l split sepBcast.value).map(it => it.toInt))
+
+    val frequencyRDD = transactionsRDD.flatMap(trans => trans).
+    map(it => (it, 1)).
+    reduceByKey(_ + _)
+    
     val transCount = transactionsRDD.count.toInt
 
     // broadcast variables
@@ -53,7 +62,7 @@ object fpgrowth {
     val nTransBcast = sc.broadcast(transCount)
 
     // build local fp-tree based on a subset of transactions
-    def mkLocalTrees(transIter: Iterator[Array[String]]): Iterator[FPTree] = {
+    def mkLocalTrees(transIter: Iterator[Array[Int]]): Iterator[FPTree] = {
       val tree = FPTree(Node.emptyNode, frequencyBcast.value,
         supBcast.value, miBcast.value, rhoBcast.value)
       tree.buildTree(transIter)
@@ -66,7 +75,6 @@ object fpgrowth {
 
     // here we have local trees
     val localTreesRDD = transactionsRDD.mapPartitions (mkLocalTrees)
-    localTreesRDD.persist
 
     /* partitioner that guarantees that equal prefixes goes to the same
      * partition
@@ -86,15 +94,14 @@ object fpgrowth {
     partitionBy(TreePartitioner(numberOfPartitions))
     
     // build a partition of the global fp-tree, given a set of miTrees
-    def mkFpTree(chunksIter: Iterator[(Stack[String],Node)]): Iterator[FPTree] = {
+    def mkFpTree(chunksIter: Iterator[(Stack[Int],Node)]): Iterator[FPTree] = {
       val tree = FPTree(Node.emptyNode, null,
         supBcast.value, miBcast.value, rhoBcast.value)
       tree.buildTreeFromChunks(chunksIter)
       Iterator(tree)
     }
 
-    val fpTreesRDD = miTreesRDD.mapPartitions (mkFpTree).
-    persist
+    val fpTreesRDD = miTreesRDD.mapPartitions (mkFpTree)
     //println("fpTreesRDD count = " + fpTreesRDD.count)
 
     // tests
@@ -103,8 +110,7 @@ object fpgrowth {
     //fpTreesRDD.foreach {tree => println("\n\n" + tree)}
     
     val rhoTreesRDD = fpTreesRDD.flatMap (_.rhoTrees).
-    partitionBy(TreePartitioner(numberOfPartitions)).
-    persist
+    partitionBy(TreePartitioner(numberOfPartitions))
     
     println("rhoTreesRDD count = " + rhoTreesRDD.count + " partitioner = " +
       rhoTreesRDD.partitioner)
@@ -112,7 +118,7 @@ object fpgrowth {
       println("prefix = " + prefix + "\n" + tree + "\n")
     }
 
-    def mkCfpTree(prefixChunks: (Stack[String],Iterable[Node])): FPTree = {
+    def mkCfpTree(prefixChunks: (Stack[Int],Iterable[Node])): FPTree = {
       val tree = FPTree(Node.emptyNode, null,
         supBcast.value, miBcast.value, rhoBcast.value)
       tree.buildCfpTreesFromChunks(prefixChunks)
@@ -128,8 +134,7 @@ object fpgrowth {
       ( prefix, mkCfpTree((prefix, Iterable(node))) )
     }.
     reduceByKey(reduceCfpTree).
-    map(_._2).
-    persist
+    map(_._2)
 
     println("finalFpTreesRDD count = " + finalFpTreesRDD.count)
     finalFpTreesRDD.foreach {tree => println("\n" + tree)}
@@ -137,8 +142,7 @@ object fpgrowth {
     val itemSetsRDD = finalFpTreesRDD.map (_.fpGrowth()).
     flatMap (itemSet => itemSet).
     map {case (it, count) => (it.sorted.mkString(" "), count / nTransBcast.value.toDouble)}.
-    sortByKey().
-    persist
+    sortByKey()
 
     println("\nItemSets ::: " + itemSetsRDD.count)
     itemSetsRDD.foreach {
@@ -146,31 +150,10 @@ object fpgrowth {
         println(it + "\t" + "%.6f".format(perc))
     }
 
-    // ++++++++++++++ version using reduceByKey (barrier-like)
-    //val finalFpTreesRDD = rhoTreesRDD.groupByKey.map (mkCfpTree).
-    //persist
+    // ++++++++++++++ version using groupByKey (barrier-like)
+    //val finalFpTreesRDD = rhoTreesRDD.groupByKey.map (mkCfpTree)
     //println("finalFpTreesRDD count = " + finalFpTreesRDD.count)
     //finalFpTreesRDD.foreach {tree => println("\n" + tree)}
-  }
-  
-  /** Itemset counting, it returns a RDD composed by (<item>, <frequency>)-like
-    * items.
-    */
-  def frequencyCounting = {
-    val linesRDD = sc.textFile(inputFile)
-
-    val transactionsRDD = linesRDD.
-    repartition(numberOfPartitions).
-    map(l => l split sep).
-    map(a => (a.head, a.tail)).
-    sortByKey().
-    map{case (k, v) => v}
-
-    val frequencyRDD = transactionsRDD.flatMap(trans => trans).
-    map(it => (it, 1)).
-    reduceByKey(_ + _)
-
-    (transactionsRDD,frequencyRDD)
   }
   
   def printHelp = {

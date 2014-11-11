@@ -6,8 +6,8 @@ import scala.collection.mutable.HashMap
 import scala.collection.immutable.Stack
 
 object Node {
-  def emptyNode = Node("#", 0, null, 0)
-  def labeledEmptyNode(rootId: String) = Node(rootId, 0, null, 0)
+  def emptyNode = Node(0, 0, null, 0)
+  def labeledEmptyNode(rootId: Int) = Node(rootId, 0, null, 0)
 }
 
 /** Frequent pattern tree node.
@@ -18,15 +18,15 @@ object Node {
  * @param _count how frequent is this item
  * @param _parent another [[fptree.Node]] or null whether it is root
  */
-case class Node(var itemId: String,
+case class Node(var itemId: Int,
     var count: Int,
     var parent: Node,
     var level: Int,
     var link: Node = null,
-    var children: HashMap[String, Node] = HashMap[String, Node](),
+    var children: HashMap[Int, Node] = HashMap[Int, Node](),
     var tids: Int = 0) extends Serializable {
 
-  def isEmpty: Boolean = (itemId == "#")
+  def isEmpty: Boolean = (itemId == 0)
   
   def isRoot: Boolean = (parent == null)
 
@@ -36,21 +36,21 @@ case class Node(var itemId: String,
     cs.foreach(c => c.parent = this)
   }
 
-  def findChild(childId: String) =
+  def findChild(childId: Int) =
     if (children.contains(childId)) children(childId)
     else null
 
   
 
   def insertTrans(
-      trans: Array[String],
-      table: Map[String,Node],
+      trans: Array[Int],
+      table: Map[Int,Node],
       count: Int): Node = {
 
     def insertTransRec(
-        trans: Array[String],
+        trans: Array[Int],
         tree: Node,
-        table: Map[String,Node],
+        table: Map[Int,Node],
         count: Int): Node = trans match {
 
       case Array() =>
