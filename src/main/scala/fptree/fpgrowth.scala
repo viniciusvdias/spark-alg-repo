@@ -6,6 +6,7 @@ import org.apache.spark.SparkContext._
 import org.apache.spark.SparkConf
 import org.apache.spark.Partitioner
 
+import scala.collection.Iterator
 import scala.collection.mutable.Map
 import scala.collection.immutable.Stack
 import scala.collection.immutable.Queue
