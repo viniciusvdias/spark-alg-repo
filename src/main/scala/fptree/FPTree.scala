@@ -4,6 +4,8 @@ import scala.collection.immutable.Stack
 import scala.collection.mutable.ListBuffer
 import scala.collection.mutable.Set
 
+import fptree._
+
 case class FPTree(
     var root: Node,
     var freq: Map[Int, Int],
