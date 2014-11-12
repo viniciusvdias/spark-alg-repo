@@ -11,10 +11,7 @@ import scala.collection.mutable.Map
 import scala.collection.immutable.Stack
 import scala.collection.immutable.Queue
 
-
-
 object fpgrowth {
-  import fptree._
 
   // default input parameters
   var inputFile = ""
@@ -66,7 +63,7 @@ object fpgrowth {
 
     // build local fp-tree based on a subset of transactions
     def mkLocalTrees(transIter: Iterator[Array[Int]]): Iterator[FPTree] = {
-      val tree = FPTree(Node.emptyNode, frequencyBcast.value,
+      val tree = fptree.FPTree(Node.emptyNode, frequencyBcast.value,
         supBcast.value, miBcast.value, rhoBcast.value)
       tree.buildTree(transIter)
       Iterator(tree)
