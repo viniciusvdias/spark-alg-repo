@@ -106,7 +106,12 @@ object fpgrowth {
       Iterator(tree)
     }
 
-    val fpTreesRDD = miTreesRDD.mapPartitions (mkFpTree)
+    val fpTreesRDD = miTreesRDD.mapPartitions {chunksIter =>
+      val tree = FPTree(Node.emptyNode, null,
+        supBcast.value, miBcast.value, rhoBcast.value)
+      tree.buildTreeFromChunks(chunksIter)
+      Iterator(tree)
+    }
     //println("fpTreesRDD count = " + fpTreesRDD.count)
 
     // tests
@@ -136,9 +141,15 @@ object fpgrowth {
 
     // +++++++++++++ version using reduceByKey (reduce-like)
     val finalFpTreesRDD = rhoTreesRDD.map {case (prefix, node) =>
-      ( prefix, mkCfpTree((prefix, Iterable(node))) )
+      val tree = FPTree(Node.emptyNode, null,
+        supBcast.value, miBcast.value, rhoBcast.value)
+      tree.buildCfpTreesFromChunks((prefix, Iterable(node)))
+      ( prefix, tree)
     }.
-    reduceByKey(reduceCfpTree).
+    reduceByKey {(t1, t2) =>
+      t1.buildCfpTreesFromChunks((t1.itemSet, Iterable(t2.root)))
+      t1
+    }.
     map(_._2)
 
     println("finalFpTreesRDD count = " + finalFpTreesRDD.count)
