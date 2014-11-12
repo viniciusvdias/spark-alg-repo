@@ -11,10 +11,10 @@ import scala.collection.mutable.Map
 import scala.collection.immutable.Stack
 import scala.collection.immutable.Queue
 
-import fptree._
 
 
 object fpgrowth {
+  import fptree._
 
   // default input parameters
   var inputFile = ""
