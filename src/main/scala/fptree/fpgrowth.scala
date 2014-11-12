@@ -96,7 +96,7 @@ object fpgrowth {
     // miTrees are constructed based on the custom partitioner 'TreePartitioner'
     val miTreesRDD = localTreesRDD.
     flatMap (_.miTrees).
-    partitionBy(TreePartitioner(numberOfPartitions))
+    partitionBy(TreePartitioner(localTreesRDD.partitions.size))
     
     // build a partition of the global fp-tree, given a set of miTrees
     def mkFpTree(chunksIter: Iterator[(Stack[Int],Node)]): Iterator[FPTree] = {
@@ -120,7 +120,7 @@ object fpgrowth {
     //fpTreesRDD.foreach {tree => println("\n\n" + tree)}
     
     val rhoTreesRDD = fpTreesRDD.flatMap (_.rhoTrees).
-    partitionBy(TreePartitioner(numberOfPartitions))
+    partitionBy(TreePartitioner(fpTreesRDD.partitions.size))
     
     println("rhoTreesRDD count = " + rhoTreesRDD.count + " partitioner = " +
       rhoTreesRDD.partitioner)
