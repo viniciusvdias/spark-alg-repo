@@ -74,7 +74,12 @@ object fpgrowth {
     //println()
 
     // here we have local trees
-    val localTreesRDD = transactionsRDD.mapPartitions (mkLocalTrees)
+    val localTreesRDD = transactionsRDD.mapPartitions {transIter =>
+      val tree = FPTree(Node.emptyNode, frequencyBcast.value,
+        supBcast.value, miBcast.value, rhoBcast.value)
+      tree.buildTree(transIter)
+      Iterator(tree)
+    }
 
     /* partitioner that guarantees that equal prefixes goes to the same
      * partition
