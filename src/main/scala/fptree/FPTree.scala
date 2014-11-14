@@ -1,5 +1,7 @@
 package fptree
 
+import scala.annotation.tailrec
+
 import scala.collection.immutable.Stack
 import scala.collection.mutable.ListBuffer
 import scala.collection.mutable.Set
@@ -46,7 +48,7 @@ case class FPTree(
   }
 
   def linearGraph = {
-
+    @tailrec
     def linearGraphRec(node: Node): Boolean = node.children.size match {
 
       case 0 => true

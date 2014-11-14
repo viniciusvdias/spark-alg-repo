@@ -1,5 +1,7 @@
 package fptree
 
+import scala.annotation.tailrec
+
 import scala.collection.mutable.Map
 import scala.collection.mutable.ListBuffer
 import scala.collection.mutable.HashMap
@@ -42,13 +44,12 @@ case class Node(var itemId: Int,
     if (children.contains(childId)) children(childId)
     else null
 
-  
-
   def insertTrans(
       trans: Array[Int],
       table: Map[Int,Node],
       count: Int): Node = {
-
+    
+    @tailrec
     def insertTransRec(
         trans: Array[Int],
         tree: Node,

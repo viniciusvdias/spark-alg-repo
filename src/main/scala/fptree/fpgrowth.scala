@@ -81,6 +81,8 @@ object fpgrowth {
       Iterator(tree)
     }
 
+    frequencyBcast.unpersist()
+
     /* partitioner that guarantees that equal prefixes goes to the same
      * partition
      */
