@@ -69,11 +69,7 @@ object fpgrowth {
       Iterator(tree)
     }
 
-    localTreesRDD.foreach {t =>
-      println("\n" + t + "\n")
-    }
-
-    //frequencyBcast.unpersist()
+    frequencyBcast.unpersist()
 
     /* partitioner that guarantees that equal prefixes goes to the same
      * partition
@@ -92,9 +88,9 @@ object fpgrowth {
     flatMap (_.miTrees).
     partitionBy(TreePartitioner(localTreesRDD.partitions.size))
 
-    miTreesRDD.foreach {case (p, t) =>
-      println("prefix = " + p + "\n" + t)
-    }
+    //miTreesRDD.foreach {case (p, t) =>
+    //  println("prefix = " + p + "\n" + t)
+    //}
     
     val fpTreesRDD = miTreesRDD.mapPartitions {chunksIter =>
       val tree = FPTree(Node.emptyNode, null,
@@ -124,13 +120,13 @@ object fpgrowth {
     map {case (it, count) => (it.sorted.mkString(" "), count / nTransBcast.value.toDouble)}.
     sortByKey()
 
-   // itemSetsRDD.saveAsTextFile("fptree_out_" + inputFile)
+    itemSetsRDD.saveAsTextFile("fptree.out")
 
-    println("\nItemSets ::: " + itemSetsRDD.count)
-    itemSetsRDD.foreach {
-      case (it, perc) =>
-        println(it + "\t" + "%.6f".format(perc))
-    }
+    //println("\nItemSets ::: " + itemSetsRDD.count)
+    //itemSetsRDD.foreach {
+    //  case (it, perc) =>
+    //    println(it + "\t" + "%.6f".format(perc))
+    //}
 
     // ++++++++++++++ version using groupByKey (barrier-like)
     //val finalFpTreesRDD = rhoTreesRDD.groupByKey.map (mkCfpTree)
