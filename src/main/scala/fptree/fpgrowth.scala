@@ -102,44 +102,30 @@ object fpgrowth {
     //flatMap (_.miTrees).
     flatMap {tree =>
 
-      def miTreesRec(prefix: Stack[Int], node: Node,
-          chunks: ListBuffer[(Stack[Int], Node)]): Stack[Int] = {
-
-        val newPrefix = prefix :+ node.itemId
-
-        if (node.level < mi && node.tids > 0) {
-
-          val emptyNode = Node(node.itemId, node.tids, null, node.tids)
-          emptyNode.count = node.tids
-          chunks.append( (newPrefix, emptyNode) )
-
-        } else if (node.level == tree.mi) {
-
-          chunks.append( (newPrefix, node) )
-
-        }
-        // recursion version
-        //node.children.foreach {case (_,c) => miTreesRec(newPrefix, c, chunks)}
-
-        newPrefix
-
-        }
-
         val miChunks = ListBuffer[(Stack[Int], Node)]()
         if (tree.mi <= 0)
           miChunks.append( (Stack(tree.root.itemId), tree.root) )
         else{
-          // recursion version
-          //this.root.children.foreach {case (_,c) => miTreesRec(Stack[Int](), c, miChunks)}
-
-          // iterative version
+          
           val nodes = scala.collection.mutable.Stack[(Stack[Int], Node)]()
           tree.root.children.foreach {case (_,c) => nodes.push( (Stack[Int](), c) ) }
 
           while (!nodes.isEmpty) {
             val (prefix, node) = nodes.pop()
+            
+            val newPrefix = prefix :+ node.itemId
 
-            val newPrefix = miTreesRec(prefix, node, miChunks)
+            if (node.level < mi && node.tids > 0) {
+
+              val emptyNode = Node(node.itemId, node.tids, null, node.tids)
+              emptyNode.count = node.tids
+              miChunks.append( (newPrefix, emptyNode) )
+
+            } else if (node.level == tree.mi) {
+
+              miChunks.append( (newPrefix, node) )
+
+            }
 
             node.children.foreach {case (_,c) => nodes.push( (newPrefix, c) )}
           }
