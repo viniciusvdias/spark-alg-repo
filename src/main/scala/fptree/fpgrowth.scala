@@ -8,6 +8,7 @@ import org.apache.spark.Partitioner
 
 import scala.collection.Iterator
 import scala.collection.mutable.Map
+import scala.collection.mutable.ListBuffer
 import scala.collection.immutable.Stack
 import scala.collection.immutable.Queue
 
@@ -98,7 +99,53 @@ object fpgrowth {
 
     // miTrees are constructed based on the custom partitioner 'TreePartitioner'
     val miTreesRDD = localTreesRDD.
-    flatMap (_.miTrees).
+    //flatMap (_.miTrees).
+    flatMap {tree =>
+
+      def miTreesRec(prefix: Stack[Int], node: Node,
+          chunks: ListBuffer[(Stack[Int], Node)]): Stack[Int] = {
+
+        val newPrefix = prefix :+ node.itemId
+
+        if (node.level < mi && node.tids > 0) {
+
+          val emptyNode = Node(node.itemId, node.tids, null, node.tids)
+          emptyNode.count = node.tids
+          chunks.append( (newPrefix, emptyNode) )
+
+        } else if (node.level == tree.mi) {
+
+          chunks.append( (newPrefix, node) )
+
+        }
+        // recursion version
+        //node.children.foreach {case (_,c) => miTreesRec(newPrefix, c, chunks)}
+
+        newPrefix
+
+        }
+
+        val miChunks = ListBuffer[(Stack[Int], Node)]()
+        if (tree.mi <= 0)
+          miChunks.append( (Stack(tree.root.itemId), tree.root) )
+        else{
+          // recursion version
+          //this.root.children.foreach {case (_,c) => miTreesRec(Stack[Int](), c, miChunks)}
+
+          // iterative version
+          val nodes = scala.collection.mutable.Stack[(Stack[Int], Node)]()
+          tree.root.children.foreach {case (_,c) => nodes.push( (Stack[Int](), c) ) }
+
+          while (!nodes.isEmpty) {
+            val (prefix, node) = nodes.pop()
+
+            val newPrefix = miTreesRec(prefix, node, miChunks)
+
+            node.children.foreach {case (_,c) => nodes.push( (newPrefix, c) )}
+          }
+        }
+        miChunks
+    }.
     partitionBy(TreePartitioner(localTreesRDD.partitions.size))
 
     //miTreesRDD.foreach {case (p, t) =>
