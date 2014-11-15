@@ -27,7 +27,6 @@ case class FPTree(
         pSet.appendAll(
           pSet.map {case (p,_) => (p.push(node.itemId), node.count)}
         )
-        println("+++++- " + pSet + " (" + node.itemId + ")")
 
         if (node.children.size == 1)
           powerSetRec(node.children.values.iterator.next, pSet)
@@ -37,9 +36,7 @@ case class FPTree(
     }
 
     val pSet = ListBuffer( (this.itemSet, this.root.count) )
-    println(" -----+ " + pSet)
     if (this.root.children.size == 1) {
-      println(" aqui no if ")
       this.root.children.iterator.next match {
         case (_,c) => powerSetRec(c, pSet)
       }
@@ -69,8 +66,6 @@ case class FPTree(
       transIter: Iterator[Array[Int]],
       countIter: Iterator[Int] = Iterator.continually(1)) = {
 
-    //println("build tree call")
-
     while (transIter.hasNext) {
       
       val trans = transIter.next
@@ -91,11 +86,9 @@ case class FPTree(
 
       }
 
-      //println(sortedTrans.mkString(", "))
       this.root.count += count
       this.root.insertTrans(sortedTrans, this.table, count)
     }
-    //println()
     this.table
   }
 
@@ -105,7 +98,6 @@ case class FPTree(
 
     case (p, Stack()) => // insertion of subtree
 
-     // println("prefix " + prefix + "\nsubTree ======== \n" + subTree)
 
       var nextNode = tree
       if (!tree.isRoot || !subTree.isRoot)
@@ -124,35 +116,26 @@ case class FPTree(
 
   def buildTreeFromChunks(chunksIter: Iterator[ (Stack[Int],Node) ]) = {
 
-    //println("build tree from chunks call")
-
     while (chunksIter.hasNext) {
       val (prefix,subTree) = chunksIter.next
-      //println("prefix = " + prefix.mkString(",") + "\n" + subTree)
       buildTreeRec(this.root, prefix, subTree)
       this.root.count += subTree.count
-      //println("\n::::++ \n" + this.root)
     }
-    //println()
     this.table
     
   }
 
   def buildCfpTreesFromChunks(prefixCfpTrees: (Stack[Int], Iterable[Node])) = {
     
-    //println("build cfpTree from chunks call")
-
     val (prefix, cfpTrees) = prefixCfpTrees
     this.itemSet = prefix
 
     cfpTrees.foreach {subTree =>
-      //println("prefix = " + prefix.mkString(",") + "\n" + subTree)
       subTree.children.foreach {case (_,c) =>
         buildTreeRec(this.root, Stack[Int](this.root.itemId), c)
       }
       this.root.count += subTree.count
     }
-    //println()
     this.table
   }
 
@@ -208,7 +191,6 @@ case class FPTree(
 
       val path = makePath(branch)
       //if (!path.isEmpty) {
-        println("path = " + path.mkString(","))
         newTransactions.push(path)
         newCounts.push(branch.count)
       //}

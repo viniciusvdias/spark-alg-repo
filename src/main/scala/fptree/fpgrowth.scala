@@ -61,27 +61,16 @@ object fpgrowth {
     val rhoBcast = sc.broadcast(rho)
     val nTransBcast = sc.broadcast(transCount)
 
-    // build local fp-tree based on a subset of transactions
-    def mkLocalTrees(transIter: Iterator[Array[Int]]): Iterator[FPTree] = {
-      val tree = fptree.FPTree(Node.emptyNode, frequencyBcast.value,
-        supBcast.value, miBcast.value, rhoBcast.value)
-      tree.buildTree(transIter)
-      Iterator(tree)
-    }
-
-    //println("Transactions")
-    //transactionsRDD.foreach {trans => println(trans.mkString(", "))}
-    //println()
-
     // here we have local trees
     val localTreesRDD = transactionsRDD.mapPartitions {transIter =>
+      println("partition, no. transactions = " + transIter.size)
       val tree = FPTree(Node.emptyNode, frequencyBcast.value,
         supBcast.value, miBcast.value, rhoBcast.value)
       tree.buildTree(transIter)
       Iterator(tree)
     }
 
-    frequencyBcast.unpersist()
+    //frequencyBcast.unpersist()
 
     /* partitioner that guarantees that equal prefixes goes to the same
      * partition
@@ -100,47 +89,16 @@ object fpgrowth {
     flatMap (_.miTrees).
     partitionBy(TreePartitioner(localTreesRDD.partitions.size))
     
-    // build a partition of the global fp-tree, given a set of miTrees
-    def mkFpTree(chunksIter: Iterator[(Stack[Int],Node)]): Iterator[FPTree] = {
-      val tree = FPTree(Node.emptyNode, null,
-        supBcast.value, miBcast.value, rhoBcast.value)
-      tree.buildTreeFromChunks(chunksIter)
-      Iterator(tree)
-    }
-
     val fpTreesRDD = miTreesRDD.mapPartitions {chunksIter =>
       val tree = FPTree(Node.emptyNode, null,
         supBcast.value, miBcast.value, rhoBcast.value)
       tree.buildTreeFromChunks(chunksIter)
       Iterator(tree)
     }
-    //println("fpTreesRDD count = " + fpTreesRDD.count)
-
-    // tests
-    
-    //localTreesRDD.foreach {tree => println("\n\n" + tree)}
-    //fpTreesRDD.foreach {tree => println("\n\n" + tree)}
     
     val rhoTreesRDD = fpTreesRDD.flatMap (_.rhoTrees).
     partitionBy(TreePartitioner(fpTreesRDD.partitions.size))
     
-    println("rhoTreesRDD count = " + rhoTreesRDD.count + " partitioner = " +
-      rhoTreesRDD.partitioner)
-    rhoTreesRDD.foreach {case (prefix, tree) =>
-      println("prefix = " + prefix + "\n" + tree + "\n")
-    }
-
-    def mkCfpTree(prefixChunks: (Stack[Int],Iterable[Node])): FPTree = {
-      val tree = FPTree(Node.emptyNode, null,
-        supBcast.value, miBcast.value, rhoBcast.value)
-      tree.buildCfpTreesFromChunks(prefixChunks)
-      tree
-    }
-    def reduceCfpTree(t1: FPTree, t2: FPTree): FPTree = {
-      t1.buildCfpTreesFromChunks((t1.itemSet, Iterable(t2.root)))
-      t1
-    }
-
     // +++++++++++++ version using reduceByKey (reduce-like)
     val finalFpTreesRDD = rhoTreesRDD.map {case (prefix, node) =>
       val tree = FPTree(Node.emptyNode, null,
@@ -154,19 +112,18 @@ object fpgrowth {
     }.
     map(_._2)
 
-    println("finalFpTreesRDD count = " + finalFpTreesRDD.count)
-    finalFpTreesRDD.foreach {tree => println("\n" + tree)}
-
     val itemSetsRDD = finalFpTreesRDD.map (_.fpGrowth()).
     flatMap (itemSet => itemSet).
     map {case (it, count) => (it.sorted.mkString(" "), count / nTransBcast.value.toDouble)}.
     sortByKey()
 
-    println("\nItemSets ::: " + itemSetsRDD.count)
-    itemSetsRDD.foreach {
-      case (it, perc) =>
-        println(it + "\t" + "%.6f".format(perc))
-    }
+    itemSetsRDD.saveAsTextFile("fptree_out_" + inputFile)
+
+    //println("\nItemSets ::: " + itemSetsRDD.count)
+    //itemSetsRDD.foreach {
+    //  case (it, perc) =>
+    //    println(it + "\t" + "%.6f".format(perc))
+    //}
 
     // ++++++++++++++ version using groupByKey (barrier-like)
     //val finalFpTreesRDD = rhoTreesRDD.groupByKey.map (mkCfpTree)

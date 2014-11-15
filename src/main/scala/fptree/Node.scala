@@ -5,7 +5,6 @@ import scala.annotation.tailrec
 import scala.collection.mutable.Map
 import scala.collection.mutable.ListBuffer
 import scala.collection.mutable.HashMap
-import scala.collection.immutable.Stack
 
 import fptree._
 
