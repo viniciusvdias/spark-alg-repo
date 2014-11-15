@@ -11,6 +11,17 @@ import scala.collection.mutable.Map
 import scala.collection.immutable.Stack
 import scala.collection.immutable.Queue
 
+
+// config kryo serializer
+import com.esotericsoftware.kryo.Kryo
+import org.apache.spark.serializer.KryoRegistrator
+class MyRegistrator extends KryoRegistrator {
+  override def registerClasses(kryo: Kryo) {
+    kryo.register(classOf[Node])
+    kryo.register(classOf[FPTree])
+  }
+}
+
 object fpgrowth {
 
   // default input parameters
@@ -22,6 +33,8 @@ object fpgrowth {
   var numberOfPartitions = 2
 
   val conf = new SparkConf().setAppName("FP-Growth")
+  conf.set("spark.serializer", "org.apache.spark.serializer.KryoSerializer")
+  conf.set("spark.kryo.registrator", "fptree.MyRegistrator")
   val sc = new SparkContext(conf)
   
   def main(args: Array[String]) {
