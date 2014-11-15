@@ -115,7 +115,7 @@ object fpgrowth {
             
             val newPrefix = prefix :+ node.itemId
 
-            if (node.level < mi && node.tids > 0) {
+            if (node.level < tree.mi && node.tids > 0) {
 
               val emptyNode = Node(node.itemId, node.tids, null, node.tids)
               emptyNode.count = node.tids

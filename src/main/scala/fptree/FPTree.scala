@@ -145,7 +145,7 @@ case class FPTree(
 
       val newPrefix = prefix :+ node.itemId
 
-      if (node.level < mi && node.tids > 0) {
+      if (node.level < this.mi && node.tids > 0) {
 
         val emptyNode = Node(node.itemId, node.tids, null, node.tids)
         emptyNode.count = node.tids
