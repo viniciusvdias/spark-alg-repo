@@ -120,13 +120,13 @@ object fpgrowth {
     map {case (it, count) => (it.sorted.mkString(" "), count / nTransBcast.value.toDouble)}.
     sortByKey()
 
-    itemSetsRDD.saveAsTextFile("fptree.out")
+    //itemSetsRDD.saveAsTextFile("fptree.out")
 
-    //println("\nItemSets ::: " + itemSetsRDD.count)
-    //itemSetsRDD.foreach {
-    //  case (it, perc) =>
-    //    println(it + "\t" + "%.6f".format(perc))
-    //}
+    println("\nItemSets ::: " + itemSetsRDD.count)
+    itemSetsRDD.foreach {
+      case (it, perc) =>
+        println(it + "\t" + "%.6f".format(perc))
+    }
 
     // ++++++++++++++ version using groupByKey (barrier-like)
     //val finalFpTreesRDD = rhoTreesRDD.groupByKey.map (mkCfpTree)

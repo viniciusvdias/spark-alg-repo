@@ -141,7 +141,7 @@ case class FPTree(
 
   def miTrees = {
     def miTreesRec(prefix: Stack[Int], node: Node,
-        chunks: ListBuffer[(Stack[Int], Node)]): Unit = {
+        chunks: ListBuffer[(Stack[Int], Node)]): Stack[Int] = {
 
       val newPrefix = prefix :+ node.itemId
 
@@ -156,14 +156,31 @@ case class FPTree(
         chunks.append( (newPrefix, node) )
 
       }
-      node.children.foreach {case (_,c) => miTreesRec(newPrefix, c, chunks)}
+      // recursion version
+      //node.children.foreach {case (_,c) => miTreesRec(newPrefix, c, chunks)}
+
+      newPrefix
+
     }
 
     val miChunks = ListBuffer[(Stack[Int], Node)]()
     if (this.mi <= 0)
       miChunks.append( (Stack(this.root.itemId), this.root) )
     else{
-      this.root.children.foreach {case (_,c) => miTreesRec(Stack[Int](), c, miChunks)}
+      // recursion version
+      //this.root.children.foreach {case (_,c) => miTreesRec(Stack[Int](), c, miChunks)}
+
+      // iterative version
+      val nodes = scala.collection.mutable.Stack[(Stack[Int], Node)]()
+      this.root.children.foreach {case (_,c) => nodes.push( (Stack[Int](), c) ) }
+
+      while (!nodes.isEmpty) {
+        val (prefix, node) = nodes.pop()
+
+        val newPrefix = miTreesRec(prefix, node, miChunks)
+
+        node.children.foreach {case (_,c) => nodes.push( (newPrefix, c) )}
+      }
     }
     miChunks
   }
