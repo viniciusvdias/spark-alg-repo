@@ -36,6 +36,7 @@ object fpgrowth {
   val conf = new SparkConf().setAppName("FP-Growth")
   conf.set("spark.serializer", "org.apache.spark.serializer.KryoSerializer")
   conf.set("spark.kryo.registrator", "fptree.MyRegistrator")
+  conf.set("spark.kryoserializer.buffer.mb", "512")
   val sc = new SparkContext(conf)
   
   def main(args: Array[String]) {
