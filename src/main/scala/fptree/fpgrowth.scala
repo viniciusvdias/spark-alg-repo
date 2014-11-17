@@ -31,7 +31,7 @@ object fpgrowth {
   var sup = 1
   var mi = 2
   var rho = 1
-  var numberOfPartitions = 1024
+  var numberOfPartitions = 4098
 
   val conf = new SparkConf().setAppName("FP-Growth")
   conf.set("spark.serializer", "org.apache.spark.serializer.KryoSerializer")
