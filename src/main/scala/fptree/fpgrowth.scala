@@ -31,7 +31,7 @@ object fpgrowth {
   var sup = 1
   var mi = 2
   var rho = 1
-  var numberOfPartitions = 2
+  var numberOfPartitions = 1024
 
   val conf = new SparkConf().setAppName("FP-Growth")
   conf.set("spark.serializer", "org.apache.spark.serializer.KryoSerializer")
@@ -82,7 +82,7 @@ object fpgrowth {
         supBcast.value, miBcast.value, rhoBcast.value)
       tree.buildTree(transIter)
       Iterator(tree)
-    }
+    }.repartition(numberOfPartitions)
 
     frequencyBcast.unpersist()
 
