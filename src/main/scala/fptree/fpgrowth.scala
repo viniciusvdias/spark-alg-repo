@@ -31,7 +31,7 @@ object fpgrowth {
   var sup = 1
   var mi = 2
   var rho = 1
-  var numberOfPartitions = 4098
+  var numberOfPartitions = 128
 
   val conf = new SparkConf().setAppName("FP-Growth")
   conf.set("spark.serializer", "org.apache.spark.serializer.KryoSerializer")
@@ -50,6 +50,7 @@ object fpgrowth {
       sep = args(2)
       mi = args(3).toInt
       rho = args(4).toInt
+      numberOfPartitions = args(5).toInt
     } catch {
       case e: Exception =>
         printHelp
