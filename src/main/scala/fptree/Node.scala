@@ -5,6 +5,7 @@ import scala.annotation.tailrec
 import scala.collection.mutable.Map
 import scala.collection.mutable.ListBuffer
 import scala.collection.mutable.HashMap
+import scala.collection.mutable.Map
 
 import fptree._
 
@@ -26,7 +27,7 @@ case class Node(var itemId: Int,
     var parent: Node,
     var level: Int,
     var link: Node = null,
-    var children: HashMap[Int, Node] = HashMap[Int, Node](),
+    var children: Map[Int, Node] = Map[Int, Node](),
     var tids: Int = 0) extends Serializable {
 
   def isEmpty: Boolean = (itemId == 0)
