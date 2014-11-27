@@ -12,10 +12,29 @@ import scala.collection.mutable.ListBuffer
 import scala.collection.immutable.Stack
 import scala.collection.immutable.Queue
 
+import com.esotericsoftware.kryo.io.Input
+import com.esotericsoftware.kryo.io.Output
+import com.esotericsoftware.kryo.Serializer
 
 // config kryo serializer
 import com.esotericsoftware.kryo.Kryo
 import org.apache.spark.serializer.KryoRegistrator
+
+
+class NodeSerializer extends Serializer[Node] {
+  override def write (k: Kryo, output: Output, obj: Node) = {
+    //output.writeInt(object.)
+    output.writeInt(obj.count)
+  }
+  override def read (k: Kryo, input: Input, t: java.lang.Class[Node]): Node ={
+    //new Color(input.readInt(), true)
+    val node = Node.emptyNode
+    node.count = input.readInt()
+    node
+  }
+
+}
+
 class MyRegistrator extends KryoRegistrator {
   override def registerClasses(kryo: Kryo) {
     kryo.register(classOf[Node])
@@ -45,9 +64,10 @@ object fpgrowth {
     println("job started")
 
     // command line arguments
+    var _sup = sup.toDouble
     try {
       inputFile = args(0)
-      sup = args(1).toDouble
+      _sup = args(1).toDouble
       sep = args(2)
       mi = args(3).toInt
       rho = args(4).toInt
@@ -72,9 +92,9 @@ object fpgrowth {
     
     val transCount = transactionsRDD.count.toInt
     if (sup > 0)
-      sup = sup * transCount
+      sup = (_sup * transCount).toInt
     else
-      sup = -1 * sup
+      sup = (-1 * _sup).toInt
 
     // broadcast variables
     val frequencyBcast = sc.broadcast(frequencyRDD.collect.toMap)
