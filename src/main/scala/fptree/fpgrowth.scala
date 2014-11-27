@@ -71,6 +71,10 @@ object fpgrowth {
     reduceByKey(_ + _)
     
     val transCount = transactionsRDD.count.toInt
+    if (sup > 0)
+      sup = sup * transCount
+    else
+      sup = -1 * sup
 
     // broadcast variables
     val frequencyBcast = sc.broadcast(frequencyRDD.collect.toMap)
@@ -87,7 +91,7 @@ object fpgrowth {
       Iterator(tree)
     }
 
-    //frequencyBcast.unpersist()
+    frequencyBcast.unpersist()
 
     /* partitioner that guarantees that equal prefixes goes to the same
      * partition
