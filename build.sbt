@@ -16,5 +16,7 @@ libraryDependencies += "junit" % "junit" % "4.10" % "test"
 
 libraryDependencies += "org.apache.spark" %% "spark-core" % "1.0.2"
 
+//dependencyOverrides += "com.esotericsoftware.kryo" % "kryo" % "2.23"
+
 //libraryDependencies += "org.apache.hadoop" % "hadoop-client" % "2.0.0-cdh4.7.0"
 
