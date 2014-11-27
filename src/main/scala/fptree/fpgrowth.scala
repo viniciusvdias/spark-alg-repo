@@ -87,7 +87,7 @@ object fpgrowth {
       Iterator(tree)
     }
 
-    frequencyBcast.unpersist()
+    //frequencyBcast.unpersist()
 
     /* partitioner that guarantees that equal prefixes goes to the same
      * partition
@@ -149,8 +149,8 @@ object fpgrowth {
       Iterator(tree)
     }
     
-    val rhoTreesRDD = fpTreesRDD.flatMap (_.rhoTrees).
-    partitionBy(TreePartitioner(fpTreesRDD.partitions.size))
+    val rhoTreesRDD = fpTreesRDD.flatMap (_.rhoTrees)//.
+    //partitionBy(TreePartitioner(fpTreesRDD.partitions.size))
     
     // +++++++++++++ version using reduceByKey (reduce-like)
     val finalFpTreesRDD = rhoTreesRDD.map {case (prefix, node) =>
