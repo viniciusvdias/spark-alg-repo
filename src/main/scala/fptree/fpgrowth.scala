@@ -47,7 +47,7 @@ object fpgrowth {
     // command line arguments
     try {
       inputFile = args(0)
-      sup = args(1).toInt
+      sup = args(1).toDouble
       sep = args(2)
       mi = args(3).toInt
       rho = args(4).toInt
