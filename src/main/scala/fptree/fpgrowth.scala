@@ -79,7 +79,7 @@ object fpgrowth {
     }
 
     // Start execution time
-    //var t0 = System.nanoTime
+    var t0 = System.nanoTime
 
     // frequency counting
     val sepBcast = sc.broadcast(sep)
@@ -101,6 +101,8 @@ object fpgrowth {
 
     // broadcast variables
     val frequencyBcast = sc.broadcast(frequencyRDD.collect.toMap)
+    
+
     val supBcast = sc.broadcast(sup)
     val miBcast = sc.broadcast(mi)
     val rhoBcast = sc.broadcast(rho)
@@ -113,6 +115,9 @@ object fpgrowth {
       tree.buildTree(transIter)
       Iterator(tree)
     }
+    sc.runJob(localTreesRDD, (iter: Iterator[_]) => {})
+    println(System.nanoTime - t0)
+    t0 = System.nanoTime
 
     frequencyBcast.unpersist()
 
@@ -175,7 +180,10 @@ object fpgrowth {
       tree.buildTreeFromChunks(chunksIter)
       Iterator(tree)
     }
-    
+    sc.runJob(fpTreesRDD, (iter: Iterator[_]) => {})
+    println(System.nanoTime - t0)
+    t0 = System.nanoTime
+
     val rhoTreesRDD = fpTreesRDD.flatMap (_.rhoTrees)//.
     //partitionBy(TreePartitioner(fpTreesRDD.partitions.size))
     
@@ -191,22 +199,26 @@ object fpgrowth {
       t1
     }.
     map(_._2)
+    
+    sc.runJob(finalFpTreesRDD, (iter: Iterator[_]) => {})
+    println(System.nanoTime - t0)
+    t0 = System.nanoTime
 
     val itemSetsRDD = finalFpTreesRDD.map (_.fpGrowth()).
     flatMap (itemSet => itemSet)
 
-    //sc.runJob(itemSetsRDD, (iter: Iterator[_]) => {})
     
-    // End job execution time
     //sc.parallelize(Array(System.nanoTime -
     //  t0)).saveAsTextFile("%s_%s_%s_%d_%s_metrics.out".format(inputFile,sup,mi,rho,numberOfPartitions))
     
     
-    val fancyItemSetsRDD = itemSetsRDD.
-    map {case (it, count) => (it.sorted.mkString(" "), count / nTransBcast.value.toDouble)}.
-    sortByKey()
+    //val fancyItemSetsRDD = itemSetsRDD.
+    //map {case (it, count) => (it.sorted.mkString(" "), count / nTransBcast.value.toDouble)}.
+    //sortByKey()
 
+    // End job execution time
     itemSetsRDD.saveAsTextFile("%s_%s_%s_%s_%s.out".format(inputFile,_sup,mi,rho,numberOfPartitions))
+    println(System.nanoTime - t0)
 
     //println("\nItemSets ::: " + itemSetsRDD.count)
     //itemSetsRDD.foreach {
