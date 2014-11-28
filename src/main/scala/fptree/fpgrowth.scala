@@ -79,7 +79,7 @@ object fpgrowth {
     }
 
     // Start execution time
-    var t0 = System.nanoTime
+    //var t0 = System.nanoTime
 
     // frequency counting
     val sepBcast = sc.broadcast(sep)
@@ -195,18 +195,18 @@ object fpgrowth {
     val itemSetsRDD = finalFpTreesRDD.map (_.fpGrowth()).
     flatMap (itemSet => itemSet)
 
-    sc.runJob(itemSetsRDD, (iter: Iterator[_]) => {})
+    //sc.runJob(itemSetsRDD, (iter: Iterator[_]) => {})
     
     // End job execution time
-    sc.parallelize(Array(System.nanoTime -
-      t0)).saveAsTextFile("%s_%s_%s_%d_%s_metrics.out".format(inputFile,sup,mi,rho,numberOfPartitions))
+    //sc.parallelize(Array(System.nanoTime -
+    //  t0)).saveAsTextFile("%s_%s_%s_%d_%s_metrics.out".format(inputFile,sup,mi,rho,numberOfPartitions))
     
     
     val fancyItemSetsRDD = itemSetsRDD.
     map {case (it, count) => (it.sorted.mkString(" "), count / nTransBcast.value.toDouble)}.
     sortByKey()
 
-    itemSetsRDD.saveAsTextFile("%s_%s_%s_%d_%s.out".format(inputFile,sup,mi,rho,numberOfPartitions))
+    itemSetsRDD.saveAsTextFile("%s_%s_%s_%s_%s.out".format(inputFile,_sup,mi,rho,numberOfPartitions))
 
     //println("\nItemSets ::: " + itemSetsRDD.count)
     //itemSetsRDD.foreach {
