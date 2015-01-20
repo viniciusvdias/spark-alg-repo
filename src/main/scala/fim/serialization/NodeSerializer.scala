@@ -10,6 +10,7 @@ import com.esotericsoftware.kryo.Kryo
 
 import scala.collection.mutable.Map
 
+// registration which avoids default recursive serialization
 class SerialRegistrator extends KryoRegistrator {
   override def registerClasses(kryo: Kryo) {
     kryo.register(classOf[FPTree])
@@ -17,6 +18,7 @@ class SerialRegistrator extends KryoRegistrator {
   }
 }
 
+// default recursive serialization
 class DefaultRegistrator extends KryoRegistrator {
   override def registerClasses(kryo: Kryo) {
     kryo.register(classOf[FPTree])
@@ -30,6 +32,8 @@ class NodeSerializer extends Serializer[Node] {
   val EndTreeNull = -2
   val nodes = Map[Int, Node]()
 
+  // each node is written as a tuple:
+  // (uniqueId, itemId, count, parentId, linkId, tids)
   override def write (k: Kryo, output: Output, obj: Node) = {
     //println("writing begins ..")
     val queue = scala.collection.mutable.Queue[Node](obj)

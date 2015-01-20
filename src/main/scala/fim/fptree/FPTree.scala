@@ -9,11 +9,11 @@ import scala.collection.mutable.ListBuffer
 import scala.collection.mutable.Set
 
 case class FPTree(
-    var root: Node,
-    var freq: Map[Int, Int],
-    var sup: Int,
-    var mi: Int,
-    var rho: Int,
+    var root: Node = null,
+    var freq: Map[Int, Int] = null,
+    var sup: Int = 0,
+    var mi: Int = 2,
+    var rho: Int = 2,
     var itemSet: Stack[Int] = Stack[Int](),
     var table: scala.collection.mutable.Map[Int,Node] = scala.collection.mutable.Map[Int, Node]()) extends Serializable {
 

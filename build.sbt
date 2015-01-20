@@ -1,4 +1,4 @@
-name := "fpgrowth-scala"
+name := "fim-spark"
 
 version := "1.0"
 
@@ -14,7 +14,7 @@ libraryDependencies += "org.scalatest" %% "scalatest" % "1.9.1" % "test"
 
 libraryDependencies += "junit" % "junit" % "4.10" % "test"
 
-libraryDependencies += "org.apache.spark" %% "spark-core" % "1.0.2"
+libraryDependencies += "org.apache.spark" %% "spark-core" % "1.2.0"
 
 //dependencyOverrides += "com.esotericsoftware.kryo" % "kryo" % "2.23"
 
