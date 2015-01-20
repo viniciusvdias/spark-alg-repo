@@ -1,4 +1,4 @@
-fpgrowth-spark
+fim-spark
 ==============
 
-Frequent Pattern Growth (fpgrowth) in Spark
+Frequent Itemset Mining (fim) in Spark
