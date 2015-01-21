@@ -29,10 +29,10 @@ class DefaultRegistrator extends KryoRegistrator {
 object NodeSerializer {
   val intNull = -1
   val endTreeNull = -2
-  val nodes = TrieMap[Int, Node]()
 }
 
 class NodeSerializer extends Serializer[Node] {
+  val nodes = TrieMap[Int, Node]()
   
   // each node is written as a tuple:
   // (uniqueId, itemId, count, parentId, linkId, tids)
@@ -86,27 +86,27 @@ class NodeSerializer extends Serializer[Node] {
     if (uniqId == NodeSerializer.endTreeNull) return null
     val itemId = input.readInt(true)
     val node = {
-      try NodeSerializer.nodes(uniqId)
+      try nodes(uniqId)
       catch {
         case e: java.util.NoSuchElementException => Node.emptyNode
       }
     }
     node.itemId = itemId
     node.uniqId = uniqId
-    NodeSerializer.nodes(uniqId) = node
+    nodes(uniqId) = node
 
     node.count = input.readInt(true)
     input.readInt(true) match {
       case NodeSerializer.intNull => node.parent = null
       case parentId =>
         val parent = {
-          try NodeSerializer.nodes(parentId)
+          try nodes(parentId)
           catch {
             case e: java.util.NoSuchElementException => Node.emptyNode
           }
         }
         parent.uniqId = parentId
-        NodeSerializer.nodes(parentId) = parent
+        nodes(parentId) = parent
 
         node.level = parent.level + 1
         parent.addChild(node)
@@ -116,13 +116,13 @@ class NodeSerializer extends Serializer[Node] {
       case NodeSerializer.intNull => node.link = null
       case linkId =>
         val link = {
-          try NodeSerializer.nodes(linkId)
+          try nodes(linkId)
           catch {
             case e: java.util.NoSuchElementException => Node.emptyNode
           }
         }
         link.uniqId = linkId
-        NodeSerializer.nodes(linkId) = link
+        nodes(linkId) = link
 
         node.link = link
     }
