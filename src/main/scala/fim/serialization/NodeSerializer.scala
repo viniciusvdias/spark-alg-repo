@@ -8,7 +8,7 @@ import com.esotericsoftware.kryo.Serializer
 import org.apache.spark.serializer.KryoRegistrator
 import com.esotericsoftware.kryo.Kryo
 
-import scala.collection.mutable.Map
+import scala.collection.concurrent.TrieMap
 
 // registration which avoids default recursive serialization
 class SerialRegistrator extends KryoRegistrator {
@@ -29,7 +29,7 @@ class DefaultRegistrator extends KryoRegistrator {
 object NodeSerializer {
   val intNull = -1
   val endTreeNull = -2
-  val nodes = Map[Int, Node]()
+  val nodes = TrieMap[Int, Node]()
 }
 
 class NodeSerializer extends Serializer[Node] {
