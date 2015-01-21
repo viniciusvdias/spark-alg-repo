@@ -1,8 +1,6 @@
 /* fpgrowth.scala */
 package fim.fptree
 
-import fim.serialization._
-
 import org.apache.log4j.Logger
 import org.apache.log4j.Level
 
@@ -40,7 +38,7 @@ object fpgrowth {
   val conf = new SparkConf().setAppName("FP-Growth")
   conf.set("spark.serializer", "org.apache.spark.serializer.KryoSerializer")
   //conf.set("spark.kryoserializer.buffer.mb", "512")
-  //conf.set("spark.core.connection.ack.wait.timeout","600")
+  conf.set("spark.core.connection.ack.wait.timeout","600")
   
   def main(args: Array[String]) {
     
