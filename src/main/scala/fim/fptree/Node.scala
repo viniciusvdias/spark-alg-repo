@@ -88,14 +88,6 @@ case class Node(var itemId: Int,
   }
 
   override def toString = {
-//case class Node(var itemId: Int,
-//    var count: Int,
-//    var parent: Node,
-//    var level: Int,
-//    var link: Node = null,
-//    var children: Map[Int, Node] = Map[Int, Node](),
-//    var tids: Int = 0) extends Serializable
-
     def toStringRec(tree: Node, level: Int): String = {
       var str = "(tree=" + System.identityHashCode(tree) + ", uniqId=" + tree.uniqId + ", itemId=" + tree.itemId + ", count=" + tree.count
 

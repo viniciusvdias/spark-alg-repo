@@ -193,6 +193,10 @@ object fpgrowth {
     println( (System.nanoTime - t0) / (1000000000.0) )
     t0 = System.nanoTime
 
+    finalFpTreesRDD.foreach {case t =>
+      println("\n" + t)
+    }
+    
     val itemSetsRDD = finalFpTreesRDD.map (_.fpGrowth()).
     flatMap (itemSet => itemSet)
 

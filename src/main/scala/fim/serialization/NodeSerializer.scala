@@ -26,12 +26,14 @@ class DefaultRegistrator extends KryoRegistrator {
   }
 }
 
-class NodeSerializer extends Serializer[Node] {
-
-  val IntNull = -1
-  val EndTreeNull = -2
+object NodeSerializer {
+  val intNull = -1
+  val endTreeNull = -2
   val nodes = Map[Int, Node]()
+}
 
+class NodeSerializer extends Serializer[Node] {
+  
   // each node is written as a tuple:
   // (uniqueId, itemId, count, parentId, linkId, tids)
   override def write (k: Kryo, output: Output, obj: Node) = {
@@ -42,7 +44,7 @@ class NodeSerializer extends Serializer[Node] {
       node.children.foreach {case (_,c) => queue += c}
       writeNode(output, node)
     }
-    output.writeInt(EndTreeNull, true)
+    output.writeInt(NodeSerializer.endTreeNull, true)
     //println("writing has been done .. :) " + nNodes)
   }
 
@@ -53,11 +55,11 @@ class NodeSerializer extends Serializer[Node] {
     if (obj.parent != null)
       output.writeInt(obj.parent.uniqId, true)
     else
-      output.writeInt(IntNull, true)
+      output.writeInt(NodeSerializer.intNull, true)
     if (obj.link != null)
       output.writeInt(obj.link.uniqId, true)
     else
-      output.writeInt(IntNull, true)
+      output.writeInt(NodeSerializer.intNull, true)
     output.writeInt(obj.tids, true)
   }
 
@@ -81,46 +83,46 @@ class NodeSerializer extends Serializer[Node] {
 
   def readNode(input: Input): Node = {
     val uniqId = input.readInt(true)
-    if (uniqId == EndTreeNull) return null
+    if (uniqId == NodeSerializer.endTreeNull) return null
     val itemId = input.readInt(true)
     val node = {
-      try nodes(uniqId)
+      try NodeSerializer.nodes(uniqId)
       catch {
         case e: java.util.NoSuchElementException => Node.emptyNode
       }
     }
     node.itemId = itemId
     node.uniqId = uniqId
-    nodes(uniqId) = node
+    NodeSerializer.nodes(uniqId) = node
 
     node.count = input.readInt(true)
     input.readInt(true) match {
-      case IntNull => node.parent = null
+      case NodeSerializer.intNull => node.parent = null
       case parentId =>
         val parent = {
-          try nodes(parentId)
+          try NodeSerializer.nodes(parentId)
           catch {
             case e: java.util.NoSuchElementException => Node.emptyNode
           }
         }
         parent.uniqId = parentId
-        nodes(parentId) = parent
+        NodeSerializer.nodes(parentId) = parent
 
         node.level = parent.level + 1
         parent.addChild(node)
     }
 
     input.readInt(true) match {
-      case IntNull => node.link = null
+      case NodeSerializer.intNull => node.link = null
       case linkId =>
         val link = {
-          try nodes(linkId)
+          try NodeSerializer.nodes(linkId)
           catch {
             case e: java.util.NoSuchElementException => Node.emptyNode
           }
         }
         link.uniqId = linkId
-        nodes(linkId) = link
+        NodeSerializer.nodes(linkId) = link
 
         node.link = link
     }
