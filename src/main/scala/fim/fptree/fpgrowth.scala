@@ -192,9 +192,9 @@ object fpgrowth {
     println( (System.nanoTime - t0) / (1000000000.0) )
     t0 = System.nanoTime
 
-    finalFpTreesRDD.foreach {case t =>
-      println("\n" + t)
-    }
+    //finalFpTreesRDD.foreach {case t =>
+    //  println("\n" + t)
+    //}
     
     val itemSetsRDD = finalFpTreesRDD.map (_.fpGrowth()).
     flatMap (itemSet => itemSet)
@@ -209,14 +209,14 @@ object fpgrowth {
     //sortByKey()
 
     // End job execution time
-    //itemSetsRDD.saveAsTextFile("%s_%s_%s_%s_%s.out".format(inputFile,_sup,mi,rho,numberOfPartitions))
+    itemSetsRDD.saveAsTextFile("%s_%s_%s_%s_%s.out".format(inputFile,_sup,mi,rho,numberOfPartitions))
     println( (System.nanoTime - t0) / (1000000000.0) )
 
-    println("\nItemSets ::: " + itemSetsRDD.count)
-    itemSetsRDD.foreach {
-      case (it, perc) =>
-        println(it + "\t" + perc)
-    }
+    //println("\nItemSets ::: " + itemSetsRDD.count)
+    //itemSetsRDD.foreach {
+    //  case (it, perc) =>
+    //    println(it + "\t" + perc)
+    //}
 
     // ++++++++++++++ version using groupByKey (barrier-like)
     //val finalFpTreesRDD = rhoTreesRDD.groupByKey.map (mkCfpTree)
