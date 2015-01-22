@@ -8,6 +8,52 @@ import scala.collection.immutable.Stack
 import scala.collection.mutable.ListBuffer
 import scala.collection.mutable.Set
 
+object FPTree {
+  
+
+  @tailrec
+  def fpGrowth(
+      subTrees: scala.collection.mutable.Stack[FPTree],
+      itemSets: ListBuffer[(Stack[Int],Int)]): ListBuffer[(Stack[Int],Int)] = {
+
+    if (subTrees.isEmpty)
+      return itemSets
+
+    val tree = subTrees.pop()
+
+    if (tree.root.count > tree.sup) {
+      if (!tree.linearGraph) {
+
+        if (!tree.itemSet.isEmpty)
+          itemSets.append( (tree.itemSet, tree.root.count) )
+
+        tree.table.foreach {case (_,c) =>
+
+          var node = c
+          var innerFreq = 0
+          while (node != null) {
+            innerFreq += node.count
+            node = node.link
+          }
+
+          if (innerFreq > tree.sup) {
+            val cfpTree = tree.projectTree(c)
+            subTrees.push(cfpTree)
+          }
+
+        }
+
+      } else {
+        itemSets.appendAll(tree.powerSet)
+        itemSets
+      }
+    }
+
+    fpGrowth(subTrees, itemSets)
+  }
+}
+
+
 case class FPTree(
     var root: Node = null,
     var freq: Map[Int, Int] = null,
@@ -261,39 +307,7 @@ case class FPTree(
     cfpTree
   }
 
-  def fpGrowth(
-      itemSets: ListBuffer[(Stack[Int],Int)] = ListBuffer()): ListBuffer[(Stack[Int],Int)] = {
-
-    if (this.root.count > this.sup) {
-      if (!this.linearGraph) {
-
-        if (!this.itemSet.isEmpty)
-          itemSets.append( (this.itemSet, this.root.count) )
-
-        this.table.foreach {case (_,c) =>
-
-          var node = c
-          var innerFreq = 0
-          while (node != null) {
-            innerFreq += node.count
-            node = node.link
-          }
-
-          if (innerFreq > this.sup) {
-            val cfpTree = this.projectTree(c)
-            cfpTree.fpGrowth(itemSets)
-          }
-
-        }
-
-      } else {
-        itemSets.appendAll(this.powerSet)
-      }
-    }
-
-    itemSets
-
-  }
+  
 
   def rhoTreesRec(prefix: Stack[Int], chunks: ListBuffer[(Stack[Int], Node)]): Unit = {
     def rhoTreesRecRec(
@@ -337,5 +351,11 @@ case class FPTree(
 
   }
   
+  def fpGrowth(
+      itemSets: ListBuffer[(Stack[Int],Int)] = ListBuffer()): ListBuffer[(Stack[Int],Int)] = {
+    val subTrees = scala.collection.mutable.Stack[FPTree](this)
+    FPTree.fpGrowth(subTrees, itemSets)
+  }
+
   override def toString = "FPTree :: " + this.itemSet + " freq = " + this.freq + "\n" + this.root
 }
