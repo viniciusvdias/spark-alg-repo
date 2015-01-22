@@ -24,8 +24,8 @@ import org.apache.spark.serializer.KryoRegistrator
 
 object fpgrowth {
 
-  Logger.getLogger("org").setLevel(Level.OFF)
-  Logger.getLogger("akka").setLevel(Level.OFF)
+  Logger.getLogger("org").setLevel(Level.INFO)
+  Logger.getLogger("akka").setLevel(Level.INFO)
 
   // default input parameters
   var inputFile = ""
