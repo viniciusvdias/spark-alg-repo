@@ -94,25 +94,66 @@ case class FPTree(
     this.table
   }
 
-  private def buildTreeRec(tree: Node,
+  //private def buildTreeRec(tree: Node,
+  //    prefix: Stack[Int],
+  //    subTree: Node): Unit = (prefix.head, prefix.tail) match {
+
+  //  case (p, Stack()) => // insertion of subtree
+
+  //    var nextNode = tree
+  //    if (!tree.isRoot || !subTree.isRoot)
+  //      nextNode = tree.insertTrans(
+  //        Array(subTree.itemId), this.table, subTree.count)
+
+  //    subTree.children.foreach {case (_,c) =>
+  //      buildTreeRec(nextNode, prefix, c)
+  //    }
+
+  //  case (p, ps) => // insertion of prefix
+
+  //    val nextNode = tree.insertTrans(Array(p), this.table, subTree.count)
+  //    buildTreeRec(nextNode, ps, subTree)
+  //}
+
+
+  private def buildTreeRec(
+      tree: Node,
       prefix: Stack[Int],
-      subTree: Node): Unit = (prefix.head, prefix.tail) match {
+      subTree: Node): Unit = {
+    buildTreeRec( scala.collection.mutable.Stack((tree, prefix, subTree)) )
+  }
 
-    case (p, Stack()) => // insertion of subtree
 
-      var nextNode = tree
-      if (!tree.isRoot || !subTree.isRoot)
-        nextNode = tree.insertTrans(
-          Array(subTree.itemId), this.table, subTree.count)
+  @tailrec
+  private def buildTreeRec(
+      args: scala.collection.mutable.Stack[(Node,Stack[Int],Node)]): Unit = {
 
-      subTree.children.foreach {case (_,c) =>
-        buildTreeRec(nextNode, prefix, c)
-      }
+    if (args.isEmpty)
+      return
 
-    case (p, ps) => // insertion of prefix
+    val (tree, prefix, subTree) = args.pop()
 
-      val nextNode = tree.insertTrans(Array(p), this.table, subTree.count)
-      buildTreeRec(nextNode, ps, subTree)
+    (prefix.head, prefix.tail) match {
+      
+      case (p, Stack()) => // insertion of subtree
+
+        var nextNode = tree
+        if (!tree.isRoot || !subTree.isRoot)
+          nextNode = tree.insertTrans(
+            Array(subTree.itemId), this.table, subTree.count)
+
+          subTree.children.foreach {case (_,c) =>
+            args.push( (nextNode, prefix, c) )
+          }
+
+          buildTreeRec(args)
+
+      case (p, ps) => // insertion of prefix
+
+        val nextNode = tree.insertTrans(Array(p), this.table, subTree.count)
+        buildTreeRec( args.push((nextNode, ps, subTree)) )
+    }
+
   }
 
   def buildTreeFromChunks(chunksIter: Iterator[ (Stack[Int],Node) ]) = {

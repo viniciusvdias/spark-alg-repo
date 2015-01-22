@@ -24,8 +24,8 @@ import org.apache.spark.serializer.KryoRegistrator
 
 object fpgrowth {
 
-  Logger.getLogger("org").setLevel(Level.INFO)
-  Logger.getLogger("akka").setLevel(Level.INFO)
+  Logger.getLogger("org").setLevel(Level.OFF)
+  Logger.getLogger("akka").setLevel(Level.OFF)
 
   // default input parameters
   var inputFile = ""
@@ -209,14 +209,14 @@ object fpgrowth {
     //sortByKey()
 
     // End job execution time
-    itemSetsRDD.saveAsTextFile("%s_%s_%s_%s_%s.out".format(inputFile,_sup,mi,rho,numberOfPartitions))
+    //itemSetsRDD.saveAsTextFile("%s_%s_%s_%s_%s.out".format(inputFile,_sup,mi,rho,numberOfPartitions))
     println( (System.nanoTime - t0) / (1000000000.0) )
 
-    //println("\nItemSets ::: " + itemSetsRDD.count)
-    //itemSetsRDD.foreach {
-    //  case (it, perc) =>
-    //    println(it + "\t" + perc)
-    //}
+    println("\nItemSets ::: " + itemSetsRDD.count)
+    itemSetsRDD.foreach {
+      case (it, perc) =>
+        println(it + "\t" + perc)
+    }
 
     // ++++++++++++++ version using groupByKey (barrier-like)
     //val finalFpTreesRDD = rhoTreesRDD.groupByKey.map (mkCfpTree)
