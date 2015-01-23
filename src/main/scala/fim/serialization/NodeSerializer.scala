@@ -56,10 +56,10 @@ class NodeSerializer extends Serializer[Node] {
       output.writeInt(obj.parent.uniqId, true)
     else
       output.writeInt(NodeSerializer.intNull, true)
-    if (obj.link != null)
-      output.writeInt(obj.link.uniqId, true)
-    else
-      output.writeInt(NodeSerializer.intNull, true)
+    //if (obj.link != null)
+    //  output.writeInt(obj.link.uniqId, true)
+    //else
+    //  output.writeInt(NodeSerializer.intNull, true)
     output.writeInt(obj.tids, true)
   }
 
@@ -112,20 +112,20 @@ class NodeSerializer extends Serializer[Node] {
         parent.addChild(node)
     }
 
-    input.readInt(true) match {
-      case NodeSerializer.intNull => node.link = null
-      case linkId =>
-        val link = {
-          try nodes(linkId)
-          catch {
-            case e: java.util.NoSuchElementException => Node.emptyNode
-          }
-        }
-        link.uniqId = linkId
-        nodes(linkId) = link
+    //input.readInt(true) match {
+    //  case NodeSerializer.intNull => node.link = null
+    //  case linkId =>
+    //    val link = {
+    //      try nodes(linkId)
+    //      catch {
+    //        case e: java.util.NoSuchElementException => Node.emptyNode
+    //      }
+    //    }
+    //    link.uniqId = linkId
+    //    nodes(linkId) = link
 
-        node.link = link
-    }
+    //    node.link = link
+    //}
     node.tids = input.readInt(true)
 
     node
