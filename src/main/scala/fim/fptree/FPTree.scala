@@ -75,8 +75,8 @@ case class FPTree(
         )
 
         //if (node.children.size == 1) // ATENÇÃO
-        if (node.children.values.iterator.size == 1)
-          powerSetRec(node.children.values.iterator.next, pSet)
+        if (node.children.size == 1)
+          powerSetRec(node.children.iterator.next, pSet)
         else
           powerSetRec(null, pSet)
 
@@ -85,11 +85,8 @@ case class FPTree(
     }
 
     val pSet = ListBuffer( (this.itemSet, this.root.count) )
-    if (this.root.children.size == 1) {
-      this.root.children.iterator.next match {
-        case (_,c) => powerSetRec(c, pSet)
-      }
-    }
+    if (this.root.children.size == 1)
+      powerSetRec(this.root.children.iterator.next, pSet)
     pSet
   }
 
@@ -100,9 +97,7 @@ case class FPTree(
       case 0 => true
 
       case 1 =>
-        node.children.iterator.next match {
-          case (_,c) => linearGraphRec(c)
-        }
+        linearGraphRec(node.children.iterator.next) 
 
       case _ => false
     
@@ -188,9 +183,7 @@ case class FPTree(
           nextNode = tree.insertTrans(
             Array(subTree.itemId), this.table, subTree.count)
 
-          subTree.children.foreach {case (_,c) =>
-            args.push( (nextNode, prefix, c) )
-          }
+          subTree.children.foreach (c => args.push( (nextNode, prefix, c) ))
 
           buildTreeRec(args)
 
@@ -219,7 +212,7 @@ case class FPTree(
     this.itemSet = prefix
 
     cfpTrees.foreach {subTree =>
-      subTree.children.foreach {case (_,c) =>
+      subTree.children.foreach {c =>
         buildTreeRec(this.root, Stack[Int](this.root.itemId), c)
       }
       this.root.count += subTree.count
@@ -260,14 +253,14 @@ case class FPTree(
 
       // iterative version
       val nodes = scala.collection.mutable.Stack[(Stack[Int], Node)]()
-      this.root.children.foreach {case (_,c) => nodes.push( (Stack[Int](), c) ) }
+      this.root.children.foreach (c => nodes.push( (Stack[Int](), c) ) )
 
       while (!nodes.isEmpty) {
         val (prefix, node) = nodes.pop()
 
         val newPrefix = miTreesRec(prefix, node, miChunks)
 
-        node.children.foreach {case (_,c) => nodes.push( (newPrefix, c) )}
+        node.children.foreach (c => nodes.push( (newPrefix, c) ))
       }
     }
     miChunks

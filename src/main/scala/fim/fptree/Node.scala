@@ -30,7 +30,7 @@ case class Node(var itemId: Int,
     var level: Int,
     var uniqId: Int = Node.nextId,
     var link: Node = null,
-    var children: Map[Int, Node] = Map[Int, Node](),
+    var children: ListBuffer[Node] = ListBuffer[Node](),
     var tids: Int = 0) extends Serializable {
 
   def isEmpty: Boolean = (itemId == 0)
@@ -38,13 +38,17 @@ case class Node(var itemId: Int,
   def isRoot: Boolean = (parent == null)
 
   def addChild(cs: Node*) = {
-    children ++= cs.map(c => (c.itemId, c))
+    // children ++= cs.map(c => (c.itemId, c)) // if children is a map
+    children.appendAll(cs)
     cs.foreach(c => c.parent = this)
   }
 
-  def findChild(childId: Int) =
-    if (children.contains(childId)) children(childId)
-    else null
+  def findChild(childId: Int) = children.filter(_.itemId == childId) match {
+    case ListBuffer() => null
+    case cs => cs.iterator.next
+  }
+    //if (children.contains(childId)) children(childId)
+    //else null
 
   def insertTrans(
       trans: Array[Int],
@@ -103,7 +107,7 @@ case class Node(var itemId: Int,
 
       if (!tree.children.isEmpty) {
         str += tree.children.
-        map {case (_,c) => "  " * level + toStringRec(c, level + 1)}.
+        map {c => "  " * level + toStringRec(c, level + 1)}.
           reduce(_ + _)
       }
       str

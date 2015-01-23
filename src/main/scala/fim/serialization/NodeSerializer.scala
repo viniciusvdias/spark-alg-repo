@@ -41,7 +41,7 @@ class NodeSerializer extends Serializer[Node] {
     val queue = scala.collection.mutable.Queue[Node](obj)
     while (!queue.isEmpty) {
       val node = queue.dequeue
-      node.children.foreach {case (_,c) => queue += c}
+      node.children.foreach (c => queue += c)
       writeNode(output, node)
     }
     output.writeInt(NodeSerializer.endTreeNull, true)

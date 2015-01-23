@@ -39,7 +39,7 @@ object fpgrowth {
   conf.set("spark.serializer", "org.apache.spark.serializer.KryoSerializer")
   //conf.set("spark.kryoserializer.buffer.mb", "512")
   conf.set("spark.core.connection.ack.wait.timeout","6000")
-  conf.set("spark.akka.frameSize","100")
+  //conf.set("spark.akka.frameSize","100")
 
   def main(args: Array[String]) {
     
@@ -132,7 +132,7 @@ object fpgrowth {
         else{
           
           val nodes = scala.collection.mutable.Stack[(Stack[Int], Node)]()
-          tree.root.children.foreach {case (_,c) => nodes.push( (Stack[Int](), c) ) }
+          tree.root.children.foreach { c => nodes.push( (Stack[Int](), c) ) }
 
           while (!nodes.isEmpty) {
             val (prefix, node) = nodes.pop()
@@ -151,7 +151,7 @@ object fpgrowth {
 
             }
 
-            node.children.foreach {case (_,c) => nodes.push( (newPrefix, c) )}
+            node.children.foreach {c => nodes.push( (newPrefix, c) )}
           }
         }
         miChunks
