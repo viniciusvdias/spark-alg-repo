@@ -38,7 +38,7 @@ object fpgrowth {
   val conf = new SparkConf().setAppName("FP-Growth")
   conf.set("spark.serializer", "org.apache.spark.serializer.KryoSerializer")
   //conf.set("spark.kryoserializer.buffer.mb", "512")
-  conf.set("spark.core.connection.ack.wait.timeout","6000")
+  // conf.set("spark.core.connection.ack.wait.timeout","6000")
   //conf.set("spark.akka.frameSize","100")
 
   def main(args: Array[String]) {
