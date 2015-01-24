@@ -75,8 +75,8 @@ object fpgrowth {
     val linesRDD = sc.textFile(inputFile)
 
     val transactionsRDD = linesRDD.
-    map(l => (l split sepBcast.value).map(it => it.toInt)).
-    repartition(numberOfPartitions)
+    map(l => (l split sepBcast.value).map(it => it.toInt))//.
+    //repartition(numberOfPartitions)
 
     val frequencyRDD = transactionsRDD.flatMap(trans => trans).
     map(it => (it, 1)).
