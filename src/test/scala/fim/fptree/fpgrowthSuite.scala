@@ -35,7 +35,7 @@ class fpgrowthSuite extends FunSuite {
   def conf = new SparkConf()
     .setMaster("local")
     .set("spark.serializer", "org.apache.spark.serializer.KryoSerializer")
-    .set("spark.kryo.registrator", "fim.serialization.SerialRegistrator")
+    .set("spark.kryo.registrator", "fim.serialization.SerialOptRegistrator")
     .setAppName("FP-Growth test")
   var sc: SparkContext = _
   val testFile1 = "input/test_artigo.txt"
@@ -60,7 +60,7 @@ class fpgrowthSuite extends FunSuite {
     val outputTree = FPTree()
     outputTree.root = outputNode
     outputTree.table(0) = outputNode
-    outputTree.table(1) = outputNode.children.iterator.next._2
+    outputTree.table(1) = outputNode.children.iterator.next
     kryo.writeObject(output, outputTree)
     output.close()
     

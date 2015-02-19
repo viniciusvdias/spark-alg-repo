@@ -8,57 +8,59 @@ import org.apache.spark.SparkContext._
 import org.apache.spark.{Logging, SparkContext}
 import org.apache.spark.SparkConf
 import org.apache.spark.Partitioner
+import org.apache.spark.HashPartitioner
+import org.apache.spark.RangePartitioner
+import org.apache.spark.rdd.RDD
+import org.apache.spark.storage.StorageLevel
 
-import scala.collection.Iterator
-import scala.collection.mutable.Map
-import scala.collection.mutable.ListBuffer
-import scala.collection.immutable.Stack
-import scala.collection.immutable.Queue
-
-// config kryo serializer
-import com.esotericsoftware.kryo.io.Input
-import com.esotericsoftware.kryo.io.Output
-import com.esotericsoftware.kryo.Serializer
-import com.esotericsoftware.kryo.Kryo
-import org.apache.spark.serializer.KryoRegistrator
+import scala.collection.mutable.ArrayBuffer
+import scala.collection.mutable.WrappedArray
+import scala.util.Sorting
+import scala.math.Ordering
 
 object fpgrowth {
-
-  Logger.getLogger("org").setLevel(Level.INFO)
-  Logger.getLogger("akka").setLevel(Level.INFO)
+  val log = Logger.getLogger("fpgrowth")
+  log.setLevel(Level.DEBUG)
 
   // default input parameters
   var inputFile = ""
   var sep = " "
-  var sup = 1
-  var mi = 2
+  var minSup = 1
+  var mu = 2
   var rho = 1
   var numberOfPartitions = 128
 
-  val conf = new SparkConf().setAppName("FP-Growth")
-  conf.set("spark.serializer", "org.apache.spark.serializer.KryoSerializer")
-  //conf.set("spark.kryoserializer.buffer.mb", "512")
-  // conf.set("spark.core.connection.ack.wait.timeout","6000")
-  //conf.set("spark.akka.frameSize","100")
+  val conf = new SparkConf().setAppName("Twidd")
 
   def main(args: Array[String]) {
     
     // command line arguments
-    var _sup = sup.toDouble
+    var minPctSup = minSup.toDouble
     try {
+
       inputFile = args(0)
-      _sup = args(1).toDouble
+      minPctSup = args(1).toDouble
       sep = args(2)
-      mi = args(3).toInt
+      mu = args(3).toInt
       rho = args(4).toInt
       numberOfPartitions = args(5).toInt
 
       // supported serializers
-      if ( args(6) == "ss" ) // serial serializer
-        conf.set("spark.kryo.registrator", "fim.serialization.SerialRegistrator")
-      else if ( args(6) == "ds" ) // default serializer
-        conf.set("spark.kryo.registrator", "fim.serialization.DefaultRegistrator")
-      else throw new Exception()
+      args(6) match {
+        case "os" => // optimized serializer (memory-friendly)
+          conf.set("spark.serializer", "org.apache.spark.serializer.KryoSerializer")
+          conf.set("spark.kryo.registrator", "fim.fptree.TreeOptRegistrator")
+        case "ds" => // default serializer (probably Java-serializer)
+        case _ => throw new Exception()
+      }
+
+      args(7) match {
+        case "log" =>
+        case "nolog" =>
+          Logger.getLogger("org").setLevel(Level.OFF)
+          Logger.getLogger("akka").setLevel(Level.OFF)
+      }
+
     } catch {
       case e: Exception =>
         printHelp
@@ -71,164 +73,124 @@ object fpgrowth {
     var t0 = System.nanoTime
 
     // frequency counting
-    val sepBcast = sc.broadcast(sep)
-    val linesRDD = sc.textFile(inputFile)
+    val linesRDD = sc.textFile(inputFile, numberOfPartitions)
 
-    val transactionsRDD = linesRDD.
-    map(l => (l split sepBcast.value).map(it => it.toInt))//.
-    //repartition(numberOfPartitions)
-
-    val frequencyRDD = transactionsRDD.flatMap(trans => trans).
-    map(it => (it, 1)).
-    reduceByKey(_ + _)
-    
+    // collection of transactions
+    val sepBc = sc.broadcast(sep)
+    val transactionsRDD = linesRDD
+      .map (l => (l split sepBc.value).map(it => it.toInt))
     val transCount = transactionsRDD.count.toInt
-    if (sup > 0)
-      sup = (_sup * transCount).toInt
-    else
-      sup = (-1 * _sup).toInt
+    log.debug ("number of transactions = " + transCount)
+    val nTransBc = sc.broadcast(transCount)
 
+    // minSupport percentage to minSupport count
+    minSup = (minPctSup * transCount).toInt
+    log.debug ("support count = " + minSup)
+    val minSupBc = sc.broadcast(minSup)
+    val muBc = sc.broadcast(mu)
+    val rhoBc = sc.broadcast(rho)
+
+    // count 1-itemsets
+    val frequencyRDD = transactionsRDD
+      .flatMap(trans => trans.iterator zip Iterator.continually(1))
+      .reduceByKey(_ + _)
+      .filter {case (_,sup) => sup > minSupBc.value}
+    
     // broadcast variables
-    val frequencyBcast = sc.broadcast(frequencyRDD.collect.toMap)
-    
-    val supBcast = sc.broadcast(sup)
-    val miBcast = sc.broadcast(mi)
-    val rhoBcast = sc.broadcast(rho)
-    val nTransBcast = sc.broadcast(transCount)
+    val freqsBc = sc.broadcast(frequencyRDD.collectAsMap)
 
-    // here we have local trees
-    val localTreesRDD = transactionsRDD.mapPartitions {transIter =>
-      val tree = FPTree(Node.emptyNode, frequencyBcast.value,
-        supBcast.value, miBcast.value, rhoBcast.value)
-      tree.buildTree(transIter)
-      Iterator(tree)
-    }
-    sc.runJob(localTreesRDD, (iter: Iterator[_]) => {})
-    println( (System.nanoTime - t0) / (1000000000.0) )
-    t0 = System.nanoTime
-
-    frequencyBcast.unpersist()
-
-    /* partitioner that guarantees that equal prefixes goes to the same
-     * partition
-     */
-    case class TreePartitioner(numPartitions: Int) extends Partitioner {
-
-      def getPartition(key: Any): Int =
-        key.hashCode.abs % numPartitions
-
-      override def equals(other: Any): Boolean =
-        other.isInstanceOf[TreePartitioner]
-    }
-
-    // miTrees are constructed based on the custom partitioner 'TreePartitioner'
-    val miTreesRDD = localTreesRDD.
-    //flatMap (_.miTrees).
-    flatMap {tree =>
-
-        val miChunks = ListBuffer[(Stack[Int], Node)]()
-        if (tree.mi <= 0)
-          miChunks.append( (Stack(tree.root.itemId), tree.root) )
-        else{
-          
-          val nodes = scala.collection.mutable.Stack[(Stack[Int], Node)]()
-          tree.root.children.foreach { c => nodes.push( (Stack[Int](), c) ) }
-
-          while (!nodes.isEmpty) {
-            val (prefix, node) = nodes.pop()
-            
-            val newPrefix = prefix :+ node.itemId
-
-            if (node.level < tree.mi && node.tids > 0) {
-
-              val emptyNode = Node(node.itemId, node.tids, null, node.tids)
-              emptyNode.count = node.tids
-              miChunks.append( (newPrefix, emptyNode) )
-
-            } else if (node.level == tree.mi) {
-
-              miChunks.append( (newPrefix, node) )
-
-            }
-
-            node.children.foreach {c => nodes.push( (newPrefix, c) )}
-          }
+    log.debug (freqsBc.value.size + " frequent 1-itemsets ...")
+     
+    // here we have *numberOfPartitions* local trees
+    val localTreesRDD = transactionsRDD
+      .map (_.filter(freqsBc.value.contains(_)).
+        sortWith {(it1, it2) =>
+          val cmp = (freqsBc.value(it1) compare freqsBc.value(it2))
+          if (cmp == 0) it1 < it2
+          else cmp > 0
         }
-        miChunks
-    }.
-    partitionBy(TreePartitioner(localTreesRDD.partitions.size))
+      )
+      .mapPartitions ({transIter =>
+        val tree = FPTree()
+        tree.buildTree(transIter)
+        Iterator(tree)
+      }, true)
 
-    //miTreesRDD.foreach {case (p, t) =>
-    //  println("prefix = " + p + "\n" + t)
-    //}
-    
-    val fpTreesRDD = miTreesRDD.mapPartitions {chunksIter =>
-      val tree = FPTree(Node.emptyNode, null,
-        supBcast.value, miBcast.value, rhoBcast.value)
-      tree.buildTreeFromChunks(chunksIter)
+    //sc.runJob(localTreesRDD, (iter: Iterator[_]) => {})
+    //log.debug ("local trees: " + (System.nanoTime - t0) / (1000000000.0))
+    //t0 = System.nanoTime
+
+    // release frequency table, up to this point, 1-itemsets are no longer
+    // necessary
+    //freqsBc.unpersist()
+
+    // muTrees are constructed based on the custom partitioner 'TreePartitioner'
+    val muTreesRDD = localTreesRDD.flatMap (_.muTrees(muBc.value))
+      .partitionBy(TreePartitioner(numberOfPartitions))
+
+    // merge muTrees based on prefix
+    val fpTreesRDD = muTreesRDD.mapPartitions ({muTreesIter =>
+      val tree = FPTree()
+      while (!muTreesIter.isEmpty) {
+        val (p,t) = muTreesIter.next
+        tree.mergeMuTree(p, t)
+      }
       Iterator(tree)
+    }, true)
+    
+    //sc.runJob(fpTreesRDD, (iter: Iterator[_]) => {})
+    //log.debug ("fp trees: " + (System.nanoTime - t0) / (1000000000.0))
+    //t0 = System.nanoTime
+
+    // build first projection trees and final conditional trees, respectively
+    val rhoTreesRDD = fpTreesRDD.flatMap {_.rhoTrees(rhoBc.value)}
+    val finalFpTreesRDD = rhoTreesRDD.reduceByKey {
+      case (t1:Int,t2:Int) => t1 + t2
+      case (t1:FPTree,t2:FPTree) => t1.mergeRhoTree(t2); t1
     }
-    sc.runJob(fpTreesRDD, (iter: Iterator[_]) => {})
-    println( (System.nanoTime - t0) / (1000000000.0) )
-    t0 = System.nanoTime
+    
+    //sc.runJob(finalFpTreesRDD, (iter: Iterator[_]) => {})
+    //log.debug ("final trees: " + (System.nanoTime - t0) / (1000000000.0))
+    //t0 = System.nanoTime
 
-    val rhoTreesRDD = fpTreesRDD.flatMap (_.rhoTrees)//.
-    //partitionBy(TreePartitioner(fpTreesRDD.partitions.size))
-    
-    // +++++++++++++ version using reduceByKey (reduce-like)
-    val finalFpTreesRDD = rhoTreesRDD.map {case (prefix, node) =>
-      val tree = FPTree(Node.emptyNode, null,
-        supBcast.value, miBcast.value, rhoBcast.value)
-      tree.buildCfpTreesFromChunks((prefix, Iterable(node)))
-      ( prefix, tree)
-    }.
-    reduceByKey {(t1, t2) =>
-      t1.buildCfpTreesFromChunks((t1.itemSet, Iterable(t2.root)))
-      t1
-    }.
-    map(_._2)
-    
-    sc.runJob(finalFpTreesRDD, (iter: Iterator[_]) => {})
-    println( (System.nanoTime - t0) / (1000000000.0) )
-    t0 = System.nanoTime
+    // perform remaining projections in the partitioned trees
+    val itemSetsRDD = finalFpTreesRDD.flatMap {
+      case (p,sup:Int) => if (sup > minSupBc.value) Iterator( (p.toArray, sup) ) else Iterator.empty
+      case (p,t:FPTree) => t.itemSet = p.toArray; t.fpGrowth(minSupBc.value)
+    }
 
-    //finalFpTreesRDD.foreach {case t =>
-    //  println("\n" + t)
-    //}
-    
-    val itemSetsRDD = finalFpTreesRDD.map (_.fpGrowth()).
-    flatMap (itemSet => itemSet)
+    args(7) match {
+      case "log" =>
+        val currTime = System.currentTimeMillis
+        val sufix = "_%s_%s.fpgrowth".format(inputFile.split("/").last,numberOfPartitions)
+        itemSetsRDD.map {case (it,sup) => it.sorted.mkString(",") + " " + sup}
+          .saveAsTextFile (currTime + "_%s_%s_%s".format(minPctSup,mu,rho) + sufix)
 
-    
-    //sc.parallelize(Array(System.nanoTime -
-    //  t0)).saveAsTextFile("%s_%s_%s_%d_%s_metrics.out".format(inputFile,sup,mi,rho,numberOfPartitions))
-    
-    
-    //val fancyItemSetsRDD = itemSetsRDD.
-    //map {case (it, count) => (it.sorted.mkString(" "), count / nTransBcast.value.toDouble)}.
-    //sortByKey()
-
+      case "nolog" =>
+        log.debug ("\nItemsets ::: " + itemSetsRDD.count)
+        itemSetsRDD.foreach {case (it,sup) => println(it.mkString(",") + "\t" + sup)}
+    }
     // End job execution time
-    //itemSetsRDD.saveAsTextFile("%s_%s_%s_%s_%s.out".format(inputFile,_sup,mi,rho,numberOfPartitions))
-    println( (System.nanoTime - t0) / (1000000000.0) )
+    log.debug ("All execution took " + (System.nanoTime - t0) / (1000000000.0) + " seconds")
 
-    println("\nItemSets ::: " + itemSetsRDD.count)
-    itemSetsRDD.foreach {
-      case (it, perc) =>
-        println(it + "\t" + perc)
+  }
+
+  /* partitioner that guarantees that equal prefixes goes to the same
+   * partition
+   */
+  case class TreePartitioner(numPartitions: Int) extends Partitioner {
+
+    def getPartition(key: Any): Int = {
+      key.hashCode.abs % numPartitions
     }
 
-    // ++++++++++++++ version using groupByKey (barrier-like)
-    //val finalFpTreesRDD = rhoTreesRDD.groupByKey.map (mkCfpTree)
-    //println("finalFpTreesRDD count = " + finalFpTreesRDD.count)
-    //finalFpTreesRDD.foreach {tree => println("\n" + tree)}
-    //
+    override def equals(other: Any): Boolean = other.isInstanceOf[TreePartitioner]
   }
-  
+ 
   def printHelp = {
-    println("Usage:\n$ ./bin/spark-submit --class fptree.fpgrowth" +
-      " <jar_file> <input_file> <min_support> <item_separator> <mu_parameter>" +
-      " <rho_parameter> <num_partitions> <serialization_register>\n")
+    println("Usage:\n$ ./bin/spark-submit --class fim.fptree.fpgrowth" +
+      " <jar_file> <input_file> <%_min_support> <item_separator> <mu_parameter>" +
+      " <rho_parameter> <num_partitions> ds|os nolog|log\n")
   }
 
 }

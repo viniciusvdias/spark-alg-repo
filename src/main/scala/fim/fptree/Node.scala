@@ -4,106 +4,148 @@ import fim.fptree._
 
 import scala.annotation.tailrec
 
-import scala.collection.mutable.Map
 import scala.collection.mutable.ListBuffer
-import scala.collection.mutable.HashMap
+import scala.collection.mutable.ArrayBuffer
+import scala.collection.mutable.HashSet
 import scala.collection.mutable.Map
 
 object Node {
-  def emptyNode = Node(0, 0, null, 0)
-  def labeledEmptyNode(rootId: Int) = Node(rootId, 0, null, 0)
-  private var currentId = 0
-  private def nextId = {currentId += 1; currentId}
+  val Null = null
+  val emptyItemId = Int.MinValue
+  val emptyChildren = Array.empty[Node]
+  def emptyRNode = RNode(emptyItemId, 0)
+  def emptyTNode = TNode(emptyItemId, 0)
 }
 
-/** Frequent pattern tree node.
- * 
- * @constructor create a new node with an item, its frequency on the DB
- * and a parent.
- * @param _itemId unique item ID
- * @param _count how frequent is this item
- * @param _parent another [[fptree.Node]] or null whether it is root
- */
-case class Node(var itemId: Int,
+case class TNode(var itemId: Int,
     var count: Int,
-    var parent: Node,
-    var level: Int,
-    var uniqId: Int = Node.nextId,
-    var link: Node = null,
-    var children: ListBuffer[Node] = ListBuffer[Node](),
-    var tids: Int = 0) extends Serializable {
+    var parent: Node = Node.Null,
+    var link: Node = Node.Null,
+    var children: Array[Node] = Node.emptyChildren,
+    var tids: Int = 0) extends Node
 
-  def isEmpty: Boolean = (itemId == 0)
-  
-  def isRoot: Boolean = (parent == null)
+case class RNode(var itemId: Int,
+    var count: Int,
+    var parent: Node = Node.Null,
+    var link: Node = Node.Null,
+    var children: Array[Node] = Node.emptyChildren) extends Node
 
-  def addChild(cs: Node*) = {
-    // children ++= cs.map(c => (c.itemId, c)) // if children is a map
-    children.appendAll(cs)
-    cs.foreach(c => c.parent = this)
+trait Node {
+  var itemId: Int
+  var count: Int
+  var parent: Node
+  var link: Node
+  var children: Array[Node]
+
+  def isRoot: Boolean = (parent == Node.Null)
+
+  def addChild(c: Node) = {
+    children = children :+ c
+    c.parent = this
   }
 
-  def findChild(childId: Int) = children.filter(_.itemId == childId) match {
-    case ListBuffer() => null
-    case cs => cs.iterator.next
+  def findNode(nodeId: Int) = {
+    //if (nodeId == this.itemId) this
+    //else
+    children.find (_.itemId == nodeId) match {
+      case Some(node) => node
+      case None => null
+    }
   }
-    //if (children.contains(childId)) children(childId)
-    //else null
 
-  def insertTrans(
-      trans: Array[Int],
-      table: Map[Int,Node],
-      count: Int): Node = {
+  //def insertTransaction(transaction: List[Int],
+  //    linksTable: Map[Int,Node],
+  //    count: Int,
+  //    updateLinksTable: Boolean = true) = {
+
+  //  @tailrec
+  //  def insertTransactionRec(currNode: Node,
+  //      transaction: List[Int],
+  //      linksTable: Map[Int,Node],
+  //      count: Int,
+  //      updateLinksTable: Boolean): Node = transaction match {
+
+  //    case Nil =>
+  //      currNode.tids += 1
+  //      currNode
+
+  //    case it :: ts => currNode.findNode(it) match {
+  //      case null => 
+  //        val newNode = Node(it, count, currNode)
+
+  //        if (updateLinksTable) {
+  //          val firstNode = linksTable.getOrElse(it, null)
+  //          newNode.link = firstNode
+  //          linksTable(it) = newNode
+  //        }
+
+  //        currNode.addChild(newNode)
+  //        insertTransactionRec(newNode, ts, linksTable, count, updateLinksTable)
+
+  //      case c =>
+  //        if (c.itemId != this.itemId) c.count += count
+  //        insertTransactionRec(c, ts, linksTable, count, updateLinksTable)
+  //    }
+  //  }
+
+  //  insertTransactionRec(this, transaction, linksTable, count, updateLinksTable)
+  //}
+
+  def insertItems(items: Array[Int],
+      linksTable: Map[Int,Node],
+      count: Int,
+      updateLinksTable: Boolean = true,
+      isTransaction: Boolean = false) = {
+
+    val transIter = items.iterator
     
-    @tailrec
-    def insertTransRec(
-        trans: Array[Int],
-        tree: Node,
-        table: Map[Int,Node],
-        count: Int): Node = trans match {
+    var currNode = this
+    while (transIter.hasNext) {
+      val it = transIter.next
 
-      case Array() =>
-        tree.tids += 1
-        tree
+      currNode.children.find(_.itemId == it) match {
+        case None => 
+          val newNode =
+            if (isTransaction) TNode(it, count)
+            else RNode(it, count)
 
-      case htail => 
-
-        val (t, ts) = (htail.head, htail.tail)
-        val child = tree.findChild(t)
-
-        child match {
-          case null =>
-            if (!table.contains(t))
-              table(t) = null
-
-            val firstNode = table(t)
-            val newNode = Node(t, count, tree, tree.level + 1)
+          if (updateLinksTable) {
+            val firstNode = linksTable.getOrElse(it, Node.Null)
             newNode.link = firstNode
-            table(t) = newNode
-            tree.addChild(newNode)
-            insertTransRec(ts, newNode, table, count)
+            linksTable(it) = newNode
+          }
 
-          case c =>
-            c.count += count
-            insertTransRec(ts, c, table, count)
+          currNode.addChild(newNode)
+
+          currNode = newNode
+
+        case Some(c) =>
+          c.count += count
+          currNode = c
       }
     }
-    insertTransRec(trans, this, table, count)
+
+    currNode match {
+      case tNode: TNode => tNode.tids += 1; tNode
+      case rNode: RNode => rNode
+    }
   }
 
   override def toString = {
     def toStringRec(tree: Node, level: Int): String = {
-      var str = "(tree=" + System.identityHashCode(tree) + ", uniqId=" + tree.uniqId + ", itemId=" + tree.itemId + ", count=" + tree.count
+      var str = "(tree=" + System.identityHashCode(tree) + ", itemId=" + tree.itemId + ", count=" + tree.count
 
       if (tree.parent != null) str += ", parent=" + tree.parent.itemId
       else str += ", parent=-1"
-      str += ", level=" + tree.level
-      if (tree.link != null) str += ", link=(" + tree.link.uniqId + "," +
+      if (tree.link != null) str += ", link=(" +
       tree.link.itemId + ", hash=" + System.identityHashCode(tree.link) + ")"
       else str += ", link=-1"
 
       str += ", #children=" + tree.children.size
-      str += ", tids=" + tree.tids + ")\n"
+      tree match {
+        case tNode: TNode => str += ", tids=" + tNode.tids + ")\n"
+        case rNode: RNode => str += ")\n"
+      }
 
       if (!tree.children.isEmpty) {
         str += tree.children.
