@@ -16,7 +16,8 @@ case class TNode(var itemId: Int,
     var count: Int,
     var parent: Node = Node.Null,
     var link: Node = Node.Null,
-    var children: Array[Node] = Node.emptyChildren,
+    var firstChild: Node = Node.Null,
+    var sibling: Node = Node.Null,
     var tids: Int = 0) extends Node
 
 // regular node
@@ -24,20 +25,39 @@ case class RNode(var itemId: Int,
     var count: Int,
     var parent: Node = Node.Null,
     var link: Node = Node.Null,
-    var children: Array[Node] = Node.emptyChildren) extends Node
+    var firstChild: Node = Node.Null,
+    var sibling: Node = Node.Null) extends Node
+
+case class ChildrenIterator(var node: Node) extends Iterator[Node] {
+  def hasNext = node != Node.Null
+  def next = { val nextNode = node; node = node.sibling; nextNode }
+}
 
 trait Node {
   var itemId: Int
   var count: Int
   var parent: Node
   var link: Node
-  var children: Array[Node]
+  var firstChild: Node
+  var sibling: Node
 
   def isRoot: Boolean = (parent == Node.Null)
 
+  def children = ChildrenIterator(this.firstChild)
+
   def addChild(c: Node) = {
-    children = children :+ c
+    c.sibling = this.firstChild
+    this.firstChild = c
     c.parent = this
+  }
+
+  def findChild(childId: Int): Option[Node] = {
+    var child = this.firstChild
+    while (child != Node.Null) {
+      if (child.itemId == childId) return Some(child)
+      child = child.sibling
+    }
+    return None
   }
 
   def insertItems(items: Iterable[Int],
@@ -52,7 +72,7 @@ trait Node {
     while (transIter.hasNext) {
       val it = transIter.next
 
-      currNode.children.find(_.itemId == it) match {
+      currNode.findChild(it) match {
         case None => 
           val newNode =
             if (isTransaction) TNode(it, count)
@@ -80,29 +100,29 @@ trait Node {
     }
   }
 
-  override def toString = {
-    def toStringRec(tree: Node, level: Int): String = {
-      var str = "(tree=" + System.identityHashCode(tree) + ", itemId=" + tree.itemId + ", count=" + tree.count
+  //override def toString = {
+  //  def toStringRec(tree: Node, level: Int): String = {
+  //    var str = "(tree=" + System.identityHashCode(tree) + ", itemId=" + tree.itemId + ", count=" + tree.count
 
-      if (tree.parent != null) str += ", parent=" + tree.parent.itemId
-      else str += ", parent=-1"
-      if (tree.link != null) str += ", link=(" +
-      tree.link.itemId + ", hash=" + System.identityHashCode(tree.link) + ")"
-      else str += ", link=-1"
+  //    if (tree.parent != null) str += ", parent=" + tree.parent.itemId
+  //    else str += ", parent=-1"
+  //    if (tree.link != null) str += ", link=(" +
+  //    tree.link.itemId + ", hash=" + System.identityHashCode(tree.link) + ")"
+  //    else str += ", link=-1"
 
-      str += ", #children=" + tree.children.size
-      tree match {
-        case tNode: TNode => str += ", tids=" + tNode.tids + ")\n"
-        case rNode: RNode => str += ")\n"
-      }
+  //    str += ", #children=" + tree.children.size
+  //    tree match {
+  //      case tNode: TNode => str += ", tids=" + tNode.tids + ")\n"
+  //      case rNode: RNode => str += ")\n"
+  //    }
 
-      if (!tree.children.isEmpty) {
-        str += tree.children.
-        map {c => "  " * level + toStringRec(c, level + 1)}.
-          reduce(_ + _)
-      }
-      str
-    }
-    toStringRec(this, 1)
-  }
+  //    if (!tree.children.isEmpty) {
+  //      str += tree.children.
+  //      map {c => "  " * level + toStringRec(c, level + 1)}.
+  //        reduce(_ + _)
+  //    }
+  //    str
+  //  }
+  //  toStringRec(this, 1)
+  //}
 }

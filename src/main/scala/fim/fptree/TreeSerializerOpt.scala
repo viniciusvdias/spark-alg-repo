@@ -106,8 +106,7 @@ class TreeSerializerOpt extends Serializer[FPTree] {
       case TreeSerializerOpt.TNodeType => readTNode(input)
     }
 
-    val tree = FPTree(root)
-    tree.itemSet = itemSet
+    val tree = FPTree(root, itemSet)
 
     var node = root
     var break = false
@@ -137,7 +136,6 @@ class TreeSerializerOpt extends Serializer[FPTree] {
           node = child
       }
     }
-    
     tree
   }
 
