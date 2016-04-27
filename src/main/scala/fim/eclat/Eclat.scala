@@ -97,7 +97,7 @@ object Eclat {
     }
   }
 
-  def getTransactions (linesRDD: RDD[String], sep: String, numPartitions: Int) = {
+  def getTransactions (linesRDD: RDD[String], sep: String) = {
     
     val transactionsRDD = linesRDD
       .map {l =>
@@ -110,7 +110,6 @@ object Eclat {
           }
         }
       }
-      .coalesce (numPartitions)
       .persist (StorageLevel.MEMORY_ONLY_SER)
       .setName ("transactions_rdd")
 
@@ -165,11 +164,22 @@ object Eclat {
     intersect.toArray // implicit convertion
   }
 
-  def newCandidates(tidListsRDD: RDD[(ItemSet,TList)], level: Int) = {
 
+
+  def newCandidates(tidListsRDD: RDD[(ItemSet,TList)], level: Int, numPartitions: Int) = {
+    
     val candidatesRDD = tidListsRDD.mapPartitions ({tSetIter =>
       val candidates = ArrayBuffer.empty[(ItemSet,TList)]
       val tids = tSetIter.toArray
+
+      def compareItemSet (it1: ItemSet, it2: ItemSet) = {
+        var i = 0
+        while (it1(i) == it2(i)) i += 1
+        if (i < it1.size && i < it2.size)
+          it1(i) compare it2(i)
+        else
+          it1.size compare it2.size
+      }
 
       // 2-combinations of (k-1)-itemsets with the same prefix (eqv. class)
       var i = 0
@@ -181,7 +191,7 @@ object Eclat {
         var break = false
         while (j < tids.size && !break) {
           val (it2,tids2) = tids(j)
-          if (prefix == it2.dropRight(1)) { // same eqv. class, same prefix
+          if (prefix == it2.dropRight(1) && compareItemSet (it1, it2) < 0) { // same eqv. class, same prefix
             // candidate
             candidates.append( (it1 :+ it2.last, ordIntersect(tids1,tids2)) )
           } else break = true // here begins a new equivalence class, compare later
@@ -191,7 +201,8 @@ object Eclat {
       }
       candidates.iterator
     }, true) // preserve original partitioning of partial tLists
-    .persist(StorageLevel.MEMORY_ONLY_SER)
+    .coalesce (numPartitions)
+    .persist(StorageLevel.MEMORY_AND_DISK_SER)
     .setName (s"candidate_level_${level}")
 
     candidatesRDD
@@ -200,39 +211,44 @@ object Eclat {
   def run(params: Params) {
     // params as vals (lazy evaluation safety)
     val (inputFile, minSupport, numPartitions, sep, logLevel) = params.getValues
+    val timestamp = System.currentTimeMillis
 
     // set log levels
     log.setLevel(logLevel)
-    Logger.getLogger("org").setLevel(Level.INFO)
-    Logger.getLogger("akka").setLevel(Level.INFO)
+    Logger.getLogger("org").setLevel(logLevel)
+    Logger.getLogger("akka").setLevel(logLevel)
 
-    log.debug (s"\n\n${params}\n")
+    log.info (s"\n\n${params}\n")
 
     // create config
     val conf = new SparkConf().setAppName(appName)
     conf.set("spark.serializer", "org.apache.spark.serializer.KryoSerializer")
-    //conf.set("spark.storage.memoryFraction", "0.45")
 
     // make spark context
     val sc = new SparkContext(conf)
-    log.debug (s"applicationId = ${sc.applicationId}")
+    log.info (s"applicationId = ${sc.applicationId}")
     
     // start timer
     var t0 = System.nanoTime
 
+    val mapPlan = Iterator.continually(numPartitions)
+        //Array (473, 473, 173, 16, 1).iterator
+    val reducePlan = Iterator.continually(numPartitions)
+        //Array (2174, 718, 155, 6, 1, 1).iterator
+
     // raw file input format and database partitioning
-    val linesRDD = sc.textFile(inputFile, numPartitions)
+    val linesRDD = sc.textFile(inputFile, mapPlan.next)
 
     // format lines into transactions
-    val transactionsRDD = getTransactions (linesRDD, sep, numPartitions) 
+    val transactionsRDD = getTransactions (linesRDD, sep) 
     
     // get transaction's count to estimate minSupport count
     val transCount = transactionsRDD.count
-    log.debug ("transaction count = " + transCount)
+    log.info ("transaction count = " + transCount)
     
     // min count
     val minCount = (minSupport * transCount).toInt
-    log.debug("min support count = " + minCount)
+    log.info ("min support count = " + minCount)
 
     // 1-itemset counting and broadcast to first prunning
     val frequencyRDD = transactionsRDD
@@ -247,7 +263,7 @@ object Eclat {
       .format(inputFile.split("/").last,minSupport,numPartitions)
 
     writeItemSets (frequencyRDD,
-      s"${System.currentTimeMillis}_${level}-itemsets${sufix}"
+      s"${timestamp}_${level}-itemsets${sufix}"
       )
     frequencyRDD.unpersist()
 
@@ -263,21 +279,23 @@ object Eclat {
     var nFreqs = nItens
     var oldCandidatesRDD: RDD[(ItemSet,TList)] = null
     var oldBc: Broadcast[scala.collection.Map[ItemSet,Int]] = null
-    
+
+            
     while (nItens > 1) {
-      log.debug (nItens + " frequent " + level + "-itemsets ...")
+      log.info (nItens + " frequent " + level + "-itemsets ...")
 
       // gen candidates by intersecting local tidLists
-      val candidatesRDD = newCandidates (tidListsRDD, level)
+      val candidatesRDD = newCandidates (tidListsRDD, level, mapPlan.next)
 
       // aggregate Tlist sizes for each itemset candidate (i.e. counting)
       // preserve only the frequent ones
-      val countsRDD = candidatesRDD.mapValues {tids => tids.size}
-        .reduceByKey (_ + _)
-        .filter {case (_,sup) => sup > minCount}
-      //itemSets.append (countsRDD.persist (StorageLevel.MEMORY_ONLY_SER))
+      val countsRDD = candidatesRDD.aggregateByKey (0, reducePlan.next) (
+        (c,tids) => c + tids.size,
+        (c1,c2) => c1 + c2
+      ).filter {case (_,sup) => sup > minCount}
+      itemSets.append (countsRDD.persist (StorageLevel.MEMORY_ONLY_SER))
       writeItemSets (countsRDD,
-        s"${System.currentTimeMillis}_${level+1}-itemsets${sufix}"
+        s"${timestamp}_${level+1}-itemsets${sufix}"
         )
 
       // broadcast frequent k-itemsets
@@ -286,14 +304,14 @@ object Eclat {
 
       // broacast and RDD storage cleaning from previous stage
       if (oldCandidatesRDD != null) {
-        log.debug (level + ". " + Common.storageInfo (oldCandidatesRDD))
+        log.info (level + ". " + Common.storageInfo (oldCandidatesRDD))
         oldCandidatesRDD.unpersist()
         oldCandidatesRDD = candidatesRDD
       } else oldCandidatesRDD = candidatesRDD
 
       if (level == 1) {
         freqsBc.unpersist()
-        log.debug (Common.storageInfo (transactionsRDD))
+        log.info (Common.storageInfo (transactionsRDD))
         transactionsRDD.unpersist()
       }
 
@@ -315,14 +333,14 @@ object Eclat {
     logLevel match {
       case Level.OFF =>
         // print found frequent itemsets
-        println(":: Itemsets " + nFreqs)
+        //println(":: Itemsets " + nFreqs)
         frequencyRDD.foreach {case (it,sup) => println(it + "\t" + sup)}
         itemSets.foreach (_.foreach {
           case (it,sup) => println(it.mkString(",") + "\t" + sup)}
         )
 
       case _ =>
-        //val currTime = System.currentTimeMillis
+        //val currTime = timestamp
         //val sufix = "_%s_%s_%s.eclat"
         //  .format(inputFile.split("/").last,minSupport,numPartitions)
 
@@ -336,7 +354,7 @@ object Eclat {
         //)
     }
             
-    log.debug ("All execution took " + (System.nanoTime - t0) / (1000000000.0) + " seconds")
+    log.info ("All execution took " + (System.nanoTime - t0) / (1000000000.0) + " seconds")
     sc.stop()
   }
 }

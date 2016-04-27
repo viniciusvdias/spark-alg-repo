@@ -2,11 +2,10 @@ package fim.fptree
 
 import scala.annotation.tailrec
 
-import scala.collection.mutable.Stack
-import scala.collection.mutable.Queue
-import scala.collection.mutable.ArrayBuffer
-import scala.collection.mutable.WrappedArray
-import scala.collection.mutable.Map
+import scala.collection.mutable.{Stack, Queue,
+  ArrayBuffer, WrappedArray, Map}
+
+import org.apache.spark.Logging
 
 import org.apache.log4j.Logger
 import org.apache.log4j.Level
@@ -104,7 +103,7 @@ object FPTree {
 
   def fpGrowth(tree: FPTree, minSup: Int) = tree.root.count match {
 
-    case count if count <= minSup => ArrayBuffer.empty
+    case count if count <= minSup => Iterator.empty
     case _ =>
       val itemSets = ArrayBuffer.empty[(Array[Int],Int)]
 
@@ -135,13 +134,18 @@ object FPTree {
           }
         } else itemSets.appendAll(nextTree.powerSet(minSup))
       }
-      itemSets
+      itemSets.iterator
   }
 }
 
 case class FPTree(var root: Node = Node.emptyRNode,
     var itemSet: Array[Int] = FPTree.emptyItemSet,
     var linksTable: Map[Int,Node] = Map[Int, Node]()) {
+
+  var depth = 0
+  def updateDepth (d: Int) = {depth = depth max d}
+  var nNodes = 0
+  def updateNnodes (n: Int) = {nNodes += n}
 
   def buildTree(transIter: Iterator[Array[Int]],
       countIter: Iterator[Int] = Iterator.continually(1)) = {
@@ -150,8 +154,9 @@ case class FPTree(var root: Node = Node.emptyRNode,
       val count = countIter.next
       this.root.count += count
       this.root.insertItems (transIter.next, this.linksTable, count,
-        false, // do not update linksTable, they're not important at that moment
-        true // this is an original transaction, mark termination with TNode for mu-Mining
+        true, // do not update linksTable, they're not important right here
+        false, // this is an original transaction, mark termination with TNode for mu-Mining
+        this
       )
     }
   }
@@ -162,7 +167,7 @@ case class FPTree(var root: Node = Node.emptyRNode,
     case _ =>
       val (tree, subTree) = args.pop()
       val nextNode = tree.insertItems (Array(subTree.itemId),
-        this.linksTable, subTree.count)
+        this.linksTable, subTree.count, tree=this)
 
       subTree.children.foreach (c => args.push( (nextNode, c) ))
       buildTreeRec(args)
@@ -184,7 +189,7 @@ case class FPTree(var root: Node = Node.emptyRNode,
     // merge *prefix* + *subTree* into this
     // that involves (1) prefix insertion and (2) subTree merge
     case FPTree(subTreeRoot,_,_) =>
-      val nextNode = this.root.insertItems (prefix, this.linksTable, subTreeRoot.count)
+      val nextNode = this.root.insertItems (prefix, this.linksTable, subTreeRoot.count, tree=this)
       val args = Stack[(Node,Node)]()
       subTreeRoot.children.foreach (c => args.push( (nextNode,c) ))
       buildTreeRec(args)
@@ -192,14 +197,14 @@ case class FPTree(var root: Node = Node.emptyRNode,
 
     // just increment prefix counter
     case count: Int =>
-      this.root.insertItems (prefix, this.linksTable, count)
+      this.root.insertItems (prefix, this.linksTable, count, tree=this)
       this.root.count += count
   }
 
   private def projectTree(node: Node) = {
     // using *List* as collection for two reasons:
     // (1) O(1) prepending
-    // (2) temporary lifetime (immutability)
+    // (2) object's life is supposed to be short (immutability)
     def makePath(leaf: Node) = {
       @tailrec
       def makePathRec(node: Node, acc: List[Int]): List[Int] = node match {
@@ -215,7 +220,7 @@ case class FPTree(var root: Node = Node.emptyRNode,
     while (branch != null) {
       val path = makePath(branch)
       cfpTree.root.count += branch.count
-      cfpTree.root.insertItems (path, cfpTree.linksTable, branch.count)
+      cfpTree.root.insertItems (path, cfpTree.linksTable, branch.count, tree=this)
       branch = branch.link
     }
     cfpTree

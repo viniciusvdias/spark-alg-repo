@@ -44,9 +44,12 @@ trait Node {
       linksTable: Map[Int,Node],
       count: Int,
       updateLinksTable: Boolean = true,
-      isTransaction: Boolean = false) = {
+      isTransaction: Boolean = false,
+      tree: FPTree = null) = {
 
     val transIter = items.iterator
+
+    var depth = 0
     
     var currNode = this
     while (transIter.hasNext) {
@@ -67,12 +70,16 @@ trait Node {
           currNode.addChild(newNode)
 
           currNode = newNode
+          depth += 1
+          if (tree != null) tree.updateNnodes (1)
 
         case Some(c) =>
           c.count += count
           currNode = c
       }
     }
+
+    if (tree != null) tree.updateDepth (depth)
 
     currNode match {
       case tNode: TNode => tNode.tids += 1; tNode

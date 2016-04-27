@@ -17,6 +17,7 @@ import org.apache.spark.AccumulatorParam
 import org.apache.spark.storage.StorageLevel
 import org.apache.spark.rdd.RDD
 import org.apache.spark.broadcast.Broadcast
+import scala.reflect.{ClassTag, classTag}
 
 // scala stuff
 import scala.collection.mutable.ArrayBuffer
@@ -24,6 +25,7 @@ import scala.collection.mutable.WrappedArray
 import scala.collection.mutable.Map
 import scala.util.Sorting
 import scala.math.Ordering
+import scala.math.Ordered
 
 import scala.reflect._
 import org.apache.spark.util.SizeEstimator
@@ -32,10 +34,22 @@ object Twidd {
   val log = Logger.getLogger(appName)
 
   type ItemSet = WrappedArray[Int]
+  def itemSetCompare (arr1: ItemSet, arr2: ItemSet): Boolean = {
+    if (arr1.size < arr2.size) return true
+    else if (arr2.size < arr1.size) return false
+
+    var i = 0
+    while (i < arr1.size && i < arr2.size) {
+      if (arr1(i) < arr2(i)) return true
+      else if (arr2(i) < arr1(i)) return false
+    }
+    return false
+  }
+  val itemSetOrd = Ordering.fromLessThan[ItemSet] (itemSetCompare)
 
   case class Params(inputFile: String = null,
       minSupport: Double = 0.5,
-      numPartitions: Int = 128,
+      numPartitions: Array[Int] = Array (128,128,128),
       mu: Int = 2,
       rho: Int = 2,
       sep: String = "\\s+",
@@ -66,7 +80,7 @@ object Twidd {
 
     parser.opt ("numPartitions",
       s"number of partitions, default: ${defaultParams.numPartitions}",
-      (value,tmpParams) => tmpParams.copy (numPartitions = value.toInt)
+      (value,tmpParams) => tmpParams.copy (numPartitions = value.split(",").map (_.toInt))
       )
 
     parser.opt ("mu",
@@ -148,7 +162,11 @@ object Twidd {
       localTreesRDD: RDD[FPTree],
       mu: Int) = {
 
-    val muTreesRDD = localTreesRDD.flatMap (FPTree.muTrees(_, mu))
+      val muTreesRDD = localTreesRDD.flatMap {t =>
+        val _mu = mu
+        //val _mu = t.root.count / mu
+        FPTree.muTrees(t, _mu)
+    }
 
     muTreesRDD
   }
@@ -161,13 +179,15 @@ object Twidd {
       partitioner: Partitioner) = {
 
     val fpTreesRDD = muTreesRDD.partitionBy (partitioner)
-      .mapPartitions ({muTreesIter =>
-        val tree = FPTree()
-        while (!muTreesIter.isEmpty) {
-          val (p,t) = muTreesIter.next
-          tree.mergeMuTree(p, t)
-        }
-        Iterator(tree)
+      .mapPartitions ({
+        case muTreesIter if !muTreesIter.isEmpty =>
+          val tree = FPTree()
+          while (!muTreesIter.isEmpty) {
+            val (p,t) = muTreesIter.next
+            tree.mergeMuTree(p, t)
+          }
+          Iterator(tree)
+        case _ => Iterator.empty
       }, true)
 
     fpTreesRDD
@@ -223,14 +243,15 @@ object Twidd {
    * custom partitioner: it guarantees that subtrees with the same prefix are
    * grouped together.
    */
-  case class TreePartitioner(numPartitions: Int) extends Partitioner {
+  class TreePartitioner(underlyingPartitioner: Partitioner) extends Partitioner {
 
-    def getPartition(key: Any): Int = {
-      key.hashCode % numPartitions match {
-        case neg if neg < 0 => neg + numPartitions
-        case pos => pos
-      }
+    def this (nparts: Int) = {
+      this (new HashPartitioner (nparts))
     }
+
+    def numPartitions: Int = underlyingPartitioner.numPartitions
+
+    def getPartition(key: Any): Int = underlyingPartitioner.getPartition(key)
 
     override def equals(other: Any): Boolean = other.isInstanceOf[TreePartitioner]
   }
@@ -241,86 +262,64 @@ object Twidd {
     val (inputFile, minSupport, numPartitions,
       mu, rho, sep, logLevel) = params.getValues
 
+    val timestamp = System.currentTimeMillis
+
     log.setLevel(logLevel)
-    Logger.getLogger("org").setLevel(Level.INFO)
-    Logger.getLogger("akka").setLevel(Level.INFO)
+    Logger.getLogger("org").setLevel(logLevel)
+    Logger.getLogger("akka").setLevel(logLevel)
     
-    log.debug (s"\n\n${params}\n")
+    log.info (s"\n\n${params}\n")
 
     val conf = new SparkConf().setAppName(appName)
     conf.set("spark.serializer", "org.apache.spark.serializer.KryoSerializer")
     conf.set("spark.kryo.registrator", "fim.fptree.TreeOptRegistrator")
-    //conf.set("spark.network.timeout", "360") // replaces all network-timeout configs
-    //conf.set("spark.akka.timeout", "300")
-    //conf.set("spark.core.connection.ack.wait.timeout", "100")
-    //conf.set("spark.driver.maxResultSize", "0")
-    //conf.set("spark.rdd.compress", "true")
-    //conf.set("spark.storage.memoryFraction", "0.45")
-
     val sc = new SparkContext(conf)
-    log.debug (s"spplicationId = ${sc.applicationId}")
 
     // Start execution time
     var t0 = System.nanoTime
 
     // frequency counting
-    val linesRDD = sc.textFile(inputFile, numPartitions)
+    val linesRDD = sc.textFile(inputFile, numPartitions(0))
     
     // collection of transactions
     val transactionsRDD = getTransactions (linesRDD, sep)
     
     val transCount = transactionsRDD.count
-    log.debug (s"number of transactions = ${transCount}")
-    log.debug (Common.storageInfo (transactionsRDD))
+    log.info (s"number of transactions = ${transCount}")
+    log.info (Common.storageInfo (transactionsRDD))
 
     // minSupport percentage to minCount
     val minCount = (minSupport * transCount).toInt
-    log.debug (s"support count = ${minCount} (${minSupport * 100}%)")
+    log.info (s"support count = ${minCount} (${minSupport * 100}%)")
 
     // count 1-itemsets
-    val frequencyRDD = transactionsRDD
-      .flatMap (trans => trans.iterator zip Iterator.continually(1))
-      .reduceByKey (_ + _)
-      .filter {case (_,sup) => sup > minCount}
+    val frequencyRDD = transactionsRDD.
+      flatMap (trans => trans.iterator zip Iterator.continually(1)).
+      reduceByKey (_ + _).
+      filter (_._2 > minCount)
 
     // broadcast variables
     val freqs = frequencyRDD.collectAsMap
     val freqsBc = sc.broadcast(freqs)
     //transactionsRDD.unpersist()
 
-    log.debug (s"${freqsBc.value.size} frequent 1-itemsets ...")
+    log.info (s"${freqsBc.value.size} frequent 1-itemsets ...")
     
     // construct localTrees
     val localTreesRDD = localTrees (transactionsRDD, freqsBc)
 
-    //sc.runJob(localTreesRDD, (iter: Iterator[_]) => {})
-    //log.debug ("local trees: " + (System.nanoTime - t0) / (1000000000.0))
-    //t0 = System.nanoTime
-
     // muTrees are constructed based on the custom partitioner 'TreePartitioner'
     val muTreesRDD = muTrees (localTreesRDD, mu)
 
-    // partitioner
-    val partitioner = TreePartitioner (numPartitions)
-    //val partitioner = new RangePartitioner (numPartitions, muTreesRDD)(Ordering.by(_.hashCode), classTag[WrappedArray[Int]])
-
     // merge muTrees based on prefix
-    val fpTreesRDD = mergeMuTrees (muTreesRDD, partitioner)
-    
-    //sc.runJob(fpTreesRDD, (iter: Iterator[_]) => {})
-    //log.debug ("fp trees: " + (System.nanoTime - t0) / (1000000000.0))
-    //t0 = System.nanoTime
+    val fpTreesRDD = mergeMuTrees (muTreesRDD, new TreePartitioner (numPartitions(1)))
+    //val fpTreesRDD = mergeMuTrees (muTreesRDD, new TreePartitioner (sc, "/bin-partitioner.txt"))
 
     // build first projection trees and final conditional trees, respectively
     val rhoTreesRDD = rhoTrees (fpTreesRDD, rho)
 
-
-    val finalFpTreesRDD = mergeRhoTrees (rhoTreesRDD, partitioner)
+    val finalFpTreesRDD = mergeRhoTrees (rhoTreesRDD, new TreePartitioner (numPartitions(2)))
     
-    //sc.runJob(finalFpTreesRDD, (iter: Iterator[_]) => {})
-    //log.debug ("final trees: " + (System.nanoTime - t0) / (1000000000.0))
-    //t0 = System.nanoTime
-
     // perform remaining projections in the partitioned trees
     val itemSetsRDD = runFPGrowth (finalFpTreesRDD, minCount)
 
@@ -331,14 +330,12 @@ object Twidd {
 
       case _ =>
         val currTime = System.currentTimeMillis
-        val sufix = "_%s_%s.fpgrowth".format(inputFile.split("/").last,numPartitions)
+        val sufix = "_%s_%s.fpgrowth".format(inputFile.split("/").last,numPartitions.mkString("_"))
         itemSetsRDD.map {case (it,sup) => it.sorted.mkString(",") + " " + sup}
           .saveAsTextFile (currTime + "_%s_%s_%s".format(minSupport,mu,rho) + sufix)
     }
     // End job execution time
-    log.debug ("All execution took " + (System.nanoTime - t0) / (1000000000.0) + " seconds")
+    log.info ("All execution took " + (System.nanoTime - t0) / (1000000000.0) + " seconds")
     sc.stop()
   }
-
-  
 }
