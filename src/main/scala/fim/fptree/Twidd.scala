@@ -47,6 +47,19 @@ object Twidd {
   }
   val itemSetOrd = Ordering.fromLessThan[ItemSet] (itemSetCompare)
 
+  /**
+   * @param inputFile path to file containing transactions
+   * @param minSupport minimum percentage of support
+   * @param numPartitions 3 numbers representing the requested partitioning in
+   * three points of the algorithm, respectively:
+   *  - input
+   *  - mu repartition
+   *  - rho repartition
+   * @param mu balancing parameter (Twig)
+   * @param rho pre-projection: balancing parameter (Twig)
+   * @param sep items delimiter
+   * @param logLevel log4j log level
+   */
   case class Params(inputFile: String = null,
       minSupport: Double = 0.5,
       numPartitions: Array[Int] = Array (128,128,128),
@@ -164,7 +177,6 @@ object Twidd {
 
       val muTreesRDD = localTreesRDD.flatMap {t =>
         val _mu = mu
-        //val _mu = t.root.count / mu
         FPTree.muTrees(t, _mu)
     }
 
@@ -279,7 +291,9 @@ object Twidd {
     var t0 = System.nanoTime
 
     // frequency counting
-    val linesRDD = sc.textFile(inputFile, numPartitions(0))
+    val linesRDD = sc.textFile(inputFile,
+      numPartitions(0) // PARTITIONING POINT 1: Reading Input
+    )
     
     // collection of transactions
     val transactionsRDD = getTransactions (linesRDD, sep)
@@ -312,13 +326,16 @@ object Twidd {
     val muTreesRDD = muTrees (localTreesRDD, mu)
 
     // merge muTrees based on prefix
-    val fpTreesRDD = mergeMuTrees (muTreesRDD, new TreePartitioner (numPartitions(1)))
-    //val fpTreesRDD = mergeMuTrees (muTreesRDD, new TreePartitioner (sc, "/bin-partitioner.txt"))
+    val fpTreesRDD = mergeMuTrees (muTreesRDD,
+      new TreePartitioner (numPartitions(1)) // PARTITIONING POINT 2: muTrees repartitioning
+    )
 
     // build first projection trees and final conditional trees, respectively
     val rhoTreesRDD = rhoTrees (fpTreesRDD, rho)
 
-    val finalFpTreesRDD = mergeRhoTrees (rhoTreesRDD, new TreePartitioner (numPartitions(2)))
+    val finalFpTreesRDD = mergeRhoTrees (rhoTreesRDD,
+      new TreePartitioner (numPartitions(2)) // PARTITIONING POINT 3: rhoTrees pre-projection
+    )
     
     // perform remaining projections in the partitioned trees
     val itemSetsRDD = runFPGrowth (finalFpTreesRDD, minCount)
