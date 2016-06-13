@@ -1,4 +1,14 @@
-fim-spark
+spark-alg-repo
 ==============
 
-Frequent Itemset Mining (fim) in Spark
+Spark algorithms repository in Spark.
+
+# Frequent Itemset Mining
+
+## Twidd
+
+## Eclat
+
+# Graph Analytics
+
+## PageRank

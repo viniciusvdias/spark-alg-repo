@@ -2,6 +2,7 @@
 *.log
 *.swp
 *.out
+*.tar.gz
 
 # sbt specific
 .cache/

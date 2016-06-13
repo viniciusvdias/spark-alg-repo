@@ -1,0 +1,250 @@
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.0 Transitional//EN">
+<html><head><title>Python: module analyzer</title>
+<meta charset="utf-8">
+</head><body bgcolor="#f0f0f8">
+
+<table width="100%" cellspacing=0 cellpadding=2 border=0 summary="heading">
+<tr bgcolor="#7799ee">
+<td valign=bottom>&nbsp;<br>
+<font color="#ffffff" face="helvetica, arial">&nbsp;<br><big><big><strong>analyzer</strong></big></big></font></td
+><td align=right valign=bottom
+><font color="#ffffff" face="helvetica, arial"><a href=".">index</a><br><a href="file:/home/viniciusvdias/Dropbox/dataprev/guia-otimizacao/src/analyzer.py">/home/viniciusvdias/Dropbox/dataprev/guia-otimizacao/src/analyzer.py</a></font></td></tr></table>
+    <p></p>
+<p>
+<table width="100%" cellspacing=0 cellpadding=2 border=0 summary="section">
+<tr bgcolor="#aa55cc">
+<td colspan=3 valign=bottom>&nbsp;<br>
+<font color="#ffffff" face="helvetica, arial"><big><strong>Modules</strong></big></font></td></tr>
+    
+<tr><td bgcolor="#aa55cc"><tt>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</tt></td><td>&nbsp;</td>
+<td width="100%"><table width="100%" summary="list"><tr><td width="25%" valign=top><a href="json.html">json</a><br>
+<a href="logging.html">logging</a><br>
+</td><td width="25%" valign=top><a href="math.html">math</a><br>
+<a href="numpy.html">numpy</a><br>
+</td><td width="25%" valign=top><a href="sys.html">sys</a><br>
+</td><td width="25%" valign=top></td></tr></table></td></tr></table><p>
+<table width="100%" cellspacing=0 cellpadding=2 border=0 summary="section">
+<tr bgcolor="#ee77aa">
+<td colspan=3 valign=bottom>&nbsp;<br>
+<font color="#ffffff" face="helvetica, arial"><big><strong>Classes</strong></big></font></td></tr>
+    
+<tr><td bgcolor="#ee77aa"><tt>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</tt></td><td>&nbsp;</td>
+<td width="100%"><dl>
+<dt><font face="helvetica, arial"><a href="analyzer.html#Action">Action</a>
+</font></dt><dd>
+<dl>
+<dt><font face="helvetica, arial"><a href="analyzer.html#NoAction">NoAction</a>
+</font></dt><dt><font face="helvetica, arial"><a href="analyzer.html#UpdateNumPartitions">UpdateNumPartitions</a>
+</font></dt><dt><font face="helvetica, arial"><a href="analyzer.html#UpdatePartitioner">UpdatePartitioner</a>
+</font></dt><dt><font face="helvetica, arial"><a href="analyzer.html#Warn">Warn</a>
+</font></dt></dl>
+</dd>
+<dt><font face="helvetica, arial"><a href="analyzer.html#Analyzer">Analyzer</a>
+</font></dt><dt><font face="helvetica, arial"><a href="analyzer.html#RDD">RDD</a>
+</font></dt><dt><font face="helvetica, arial"><a href="analyzer.html#Stage">Stage</a>
+</font></dt><dt><font face="helvetica, arial"><a href="analyzer.html#Task">Task</a>
+</font></dt></dl>
+ <p>
+<table width="100%" cellspacing=0 cellpadding=2 border=0 summary="section">
+<tr bgcolor="#ffc8d8">
+<td colspan=3 valign=bottom>&nbsp;<br>
+<font color="#000000" face="helvetica, arial"><a name="Action">class <strong>Action</strong></a></font></td></tr>
+    
+<tr><td bgcolor="#ffc8d8"><tt>&nbsp;&nbsp;&nbsp;</tt></td><td>&nbsp;</td>
+<td width="100%">Methods defined here:<br>
+<dl><dt><a name="Action-__init__"><strong>__init__</strong></a>(self, adaptive_point)</dt></dl>
+
+</td></tr></table> <p>
+<table width="100%" cellspacing=0 cellpadding=2 border=0 summary="section">
+<tr bgcolor="#ffc8d8">
+<td colspan=3 valign=bottom>&nbsp;<br>
+<font color="#000000" face="helvetica, arial"><a name="Analyzer">class <strong>Analyzer</strong></a></font></td></tr>
+    
+<tr><td bgcolor="#ffc8d8"><tt>&nbsp;&nbsp;&nbsp;</tt></td><td>&nbsp;</td>
+<td width="100%">Methods defined here:<br>
+<dl><dt><a name="Analyzer-__init__"><strong>__init__</strong></a>(self, filename)</dt></dl>
+
+<dl><dt><a name="Analyzer-correlation"><strong>correlation</strong></a>(self, values1, values2)</dt></dl>
+
+<dl><dt><a name="Analyzer-get_opt_funcs"><strong>get_opt_funcs</strong></a>(self)</dt></dl>
+
+<dl><dt><a name="Analyzer-get_opt_funcs_default"><strong>get_opt_funcs_default</strong></a>(self)</dt></dl>
+
+<dl><dt><a name="Analyzer-highcorr"><strong>highcorr</strong></a>(self, corr)</dt></dl>
+
+<dl><dt><a name="Analyzer-highskewness"><strong>highskewness</strong></a>(self, skewness)</dt></dl>
+
+<dl><dt><a name="Analyzer-opt_funcs"><strong>opt_funcs</strong></a>(self)</dt></dl>
+
+<dl><dt><a name="Analyzer-run"><strong>run</strong></a>(self)</dt></dl>
+
+<dl><dt><a name="Analyzer-skewness"><strong>skewness</strong></a>(self, values)</dt><dd><tt>Our&nbsp;measure&nbsp;for&nbsp;skewness&nbsp;considers&nbsp;the&nbsp;ratio&nbsp;between&nbsp;the&nbsp;max&nbsp;value&nbsp;and&nbsp;the<br>
+mean.&nbsp;Therefore,&nbsp;skewness&nbsp;close&nbsp;to&nbsp;1.0&nbsp;represent&nbsp;datasets&nbsp;with&nbsp;low&nbsp;skewness</tt></dd></dl>
+
+</td></tr></table> <p>
+<table width="100%" cellspacing=0 cellpadding=2 border=0 summary="section">
+<tr bgcolor="#ffc8d8">
+<td colspan=3 valign=bottom>&nbsp;<br>
+<font color="#000000" face="helvetica, arial"><a name="NoAction">class <strong>NoAction</strong></a>(<a href="analyzer.html#Action">Action</a>)</font></td></tr>
+    
+<tr><td bgcolor="#ffc8d8"><tt>&nbsp;&nbsp;&nbsp;</tt></td><td>&nbsp;</td>
+<td width="100%">Methods defined here:<br>
+<dl><dt><a name="NoAction-__init__"><strong>__init__</strong></a>(self, adaptive_point)</dt></dl>
+
+<dl><dt><a name="NoAction-__repr__"><strong>__repr__</strong></a>(self)</dt></dl>
+
+</td></tr></table> <p>
+<table width="100%" cellspacing=0 cellpadding=2 border=0 summary="section">
+<tr bgcolor="#ffc8d8">
+<td colspan=3 valign=bottom>&nbsp;<br>
+<font color="#000000" face="helvetica, arial"><a name="RDD">class <strong>RDD</strong></a></font></td></tr>
+    
+<tr><td bgcolor="#ffc8d8"><tt>&nbsp;&nbsp;&nbsp;</tt></td><td>&nbsp;</td>
+<td width="100%">Methods defined here:<br>
+<dl><dt><a name="RDD-__eq__"><strong>__eq__</strong></a>(r1, r2)</dt></dl>
+
+<dl><dt><a name="RDD-__hash__"><strong>__hash__</strong></a>(self)</dt></dl>
+
+<dl><dt><a name="RDD-__init__"><strong>__init__</strong></a>(self, rdd_info)</dt></dl>
+
+<dl><dt><a name="RDD-__repr__"><strong>__repr__</strong></a>(self)</dt></dl>
+
+<dl><dt><a name="RDD-first_rdd"><strong>first_rdd</strong></a>(self)</dt></dl>
+
+</td></tr></table> <p>
+<table width="100%" cellspacing=0 cellpadding=2 border=0 summary="section">
+<tr bgcolor="#ffc8d8">
+<td colspan=3 valign=bottom>&nbsp;<br>
+<font color="#000000" face="helvetica, arial"><a name="Stage">class <strong>Stage</strong></a></font></td></tr>
+    
+<tr><td bgcolor="#ffc8d8"><tt>&nbsp;&nbsp;&nbsp;</tt></td><td>&nbsp;</td>
+<td width="100%">Methods defined here:<br>
+<dl><dt><a name="Stage-__init__"><strong>__init__</strong></a>(self, stage_data)</dt></dl>
+
+<dl><dt><a name="Stage-__repr__"><strong>__repr__</strong></a>(self)</dt></dl>
+
+<dl><dt><a name="Stage-adaptive_point"><strong>adaptive_point</strong></a>(self)</dt></dl>
+
+<dl><dt><a name="Stage-add_task"><strong>add_task</strong></a>(self, task)</dt></dl>
+
+<dl><dt><a name="Stage-bytes_spilled"><strong>bytes_spilled</strong></a>(self)</dt></dl>
+
+<dl><dt><a name="Stage-can_adapt"><strong>can_adapt</strong></a>(self)</dt></dl>
+
+<dl><dt><a name="Stage-empty_tasks"><strong>empty_tasks</strong></a>(self)</dt></dl>
+
+<dl><dt><a name="Stage-first_rdd"><strong>first_rdd</strong></a>(self)</dt></dl>
+
+<dl><dt><a name="Stage-input_records"><strong>input_records</strong></a>(self)</dt></dl>
+
+<dl><dt><a name="Stage-records_read"><strong>records_read</strong></a>(self)</dt></dl>
+
+<dl><dt><a name="Stage-shuffle_read_bytes"><strong>shuffle_read_bytes</strong></a>(self)</dt></dl>
+
+<dl><dt><a name="Stage-shuffle_read_records"><strong>shuffle_read_records</strong></a>(self)</dt></dl>
+
+<dl><dt><a name="Stage-shuffle_write_bytes"><strong>shuffle_write_bytes</strong></a>(self)</dt></dl>
+
+<dl><dt><a name="Stage-shuffle_write_records"><strong>shuffle_write_records</strong></a>(self)</dt></dl>
+
+<dl><dt><a name="Stage-task_gc_times"><strong>task_gc_times</strong></a>(self)</dt></dl>
+
+<dl><dt><a name="Stage-task_run_times"><strong>task_run_times</strong></a>(self)</dt></dl>
+
+<dl><dt><a name="Stage-task_shuffle_read_bytes"><strong>task_shuffle_read_bytes</strong></a>(self)</dt></dl>
+
+<dl><dt><a name="Stage-task_shuffle_read_records"><strong>task_shuffle_read_records</strong></a>(self)</dt></dl>
+
+</td></tr></table> <p>
+<table width="100%" cellspacing=0 cellpadding=2 border=0 summary="section">
+<tr bgcolor="#ffc8d8">
+<td colspan=3 valign=bottom>&nbsp;<br>
+<font color="#000000" face="helvetica, arial"><a name="Task">class <strong>Task</strong></a></font></td></tr>
+    
+<tr><td bgcolor="#ffc8d8"><tt>&nbsp;&nbsp;&nbsp;</tt></td><td>&nbsp;</td>
+<td width="100%">Methods defined here:<br>
+<dl><dt><a name="Task-__init__"><strong>__init__</strong></a>(self, task_data, stage)</dt></dl>
+
+<dl><dt><a name="Task-__repr__"><strong>__repr__</strong></a>(self)</dt></dl>
+
+<dl><dt><a name="Task-bytes_spilled"><strong>bytes_spilled</strong></a>(self)</dt></dl>
+
+<dl><dt><a name="Task-records_read"><strong>records_read</strong></a>(self)</dt></dl>
+
+</td></tr></table> <p>
+<table width="100%" cellspacing=0 cellpadding=2 border=0 summary="section">
+<tr bgcolor="#ffc8d8">
+<td colspan=3 valign=bottom>&nbsp;<br>
+<font color="#000000" face="helvetica, arial"><a name="UpdateNumPartitions">class <strong>UpdateNumPartitions</strong></a>(<a href="analyzer.html#Action">Action</a>)</font></td></tr>
+    
+<tr><td bgcolor="#ffc8d8"><tt>&nbsp;&nbsp;&nbsp;</tt></td><td>&nbsp;</td>
+<td width="100%">Methods defined here:<br>
+<dl><dt><a name="UpdateNumPartitions-__init__"><strong>__init__</strong></a>(self, adaptive_point, num_partitions)</dt></dl>
+
+<dl><dt><a name="UpdateNumPartitions-__repr__"><strong>__repr__</strong></a>(self)</dt></dl>
+
+<dl><dt><a name="UpdateNumPartitions-scaled"><strong>scaled</strong></a>(self, factor)</dt></dl>
+
+</td></tr></table> <p>
+<table width="100%" cellspacing=0 cellpadding=2 border=0 summary="section">
+<tr bgcolor="#ffc8d8">
+<td colspan=3 valign=bottom>&nbsp;<br>
+<font color="#000000" face="helvetica, arial"><a name="UpdatePartitioner">class <strong>UpdatePartitioner</strong></a>(<a href="analyzer.html#Action">Action</a>)</font></td></tr>
+    
+<tr><td bgcolor="#ffc8d8"><tt>&nbsp;&nbsp;&nbsp;</tt></td><td>&nbsp;</td>
+<td width="100%">Methods defined here:<br>
+<dl><dt><a name="UpdatePartitioner-__init__"><strong>__init__</strong></a>(self, adaptive_point, partitioner)</dt></dl>
+
+<dl><dt><a name="UpdatePartitioner-__repr__"><strong>__repr__</strong></a>(self)</dt></dl>
+
+</td></tr></table> <p>
+<table width="100%" cellspacing=0 cellpadding=2 border=0 summary="section">
+<tr bgcolor="#ffc8d8">
+<td colspan=3 valign=bottom>&nbsp;<br>
+<font color="#000000" face="helvetica, arial"><a name="Warn">class <strong>Warn</strong></a>(<a href="analyzer.html#Action">Action</a>)</font></td></tr>
+    
+<tr><td bgcolor="#ffc8d8"><tt>&nbsp;&nbsp;&nbsp;</tt></td><td>&nbsp;</td>
+<td width="100%">Methods defined here:<br>
+<dl><dt><a name="Warn-__init__"><strong>__init__</strong></a>(self, adaptive_point, msg)</dt></dl>
+
+<dl><dt><a name="Warn-__repr__"><strong>__repr__</strong></a>(self)</dt></dl>
+
+</td></tr></table></td></tr></table><p>
+<table width="100%" cellspacing=0 cellpadding=2 border=0 summary="section">
+<tr bgcolor="#eeaa77">
+<td colspan=3 valign=bottom>&nbsp;<br>
+<font color="#ffffff" face="helvetica, arial"><big><strong>Functions</strong></big></font></td></tr>
+    
+<tr><td bgcolor="#eeaa77"><tt>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</tt></td><td>&nbsp;</td>
+<td width="100%"><dl><dt><a name="-equiv_input"><strong>equiv_input</strong></a>(subset, superset)</dt><dd><tt>Verifies&nbsp;whether&nbsp;one&nbsp;set&nbsp;is&nbsp;subset&nbsp;of&nbsp;another,&nbsp;a.k.a.&nbsp;superset.</tt></dd></dl>
+ <dl><dt><a name="-get_json"><strong>get_json</strong></a>(line)</dt><dd><tt>Loads&nbsp;one&nbsp;json&nbsp;line&nbsp;(record).&nbsp;Returns&nbsp;the&nbsp;indexed&nbsp;structure.</tt></dd></dl>
+ <dl><dt><a name="-get_or_else"><strong>get_or_else</strong></a>(data, key, default_value<font color="#909090">=None</font>)</dt><dd><tt>Tries&nbsp;to&nbsp;get&nbsp;a&nbsp;value&nbsp;from&nbsp;data&nbsp;with&nbsp;key.&nbsp;Returns&nbsp;default_value&nbsp;in&nbsp;case&nbsp;of&nbsp;key<br>
+not&nbsp;found.</tt></dd></dl>
+ <dl><dt><a name="-is_iterative"><strong>is_iterative</strong></a>(adaptable)</dt><dd><tt>Returns&nbsp;the&nbsp;predicate&nbsp;"is&nbsp;iterative"&nbsp;for&nbsp;each&nbsp;adaptive&nbsp;point.</tt></dd></dl>
+ <dl><dt><a name="-is_regular"><strong>is_regular</strong></a>(adaptable)</dt><dd><tt>Returns&nbsp;the&nbsp;predicate&nbsp;"is&nbsp;regular"&nbsp;for&nbsp;each&nbsp;adaptive&nbsp;point.</tt></dd></dl>
+ <dl><dt><a name="-opt_app"><strong>opt_app</strong></a>(adaptable, analyzer)</dt></dl>
+ <dl><dt><a name="-opt_iterative_irregular"><strong>opt_iterative_irregular</strong></a>(adaptable, analyzer)</dt></dl>
+ <dl><dt><a name="-opt_iterative_regular"><strong>opt_iterative_regular</strong></a>(adaptable, analyzer)</dt></dl>
+ <dl><dt><a name="-opt_noniterative"><strong>opt_noniterative</strong></a>(adaptable, analyzer)</dt></dl>
+ <dl><dt><a name="-opt_stage"><strong>opt_stage</strong></a>(rdd, stages, analyzer)</dt></dl>
+ <dl><dt><a name="-opt_stage_empty_task"><strong>opt_stage_empty_task</strong></a>(rdd, stages, analyzer)</dt></dl>
+ <dl><dt><a name="-opt_stage_gc"><strong>opt_stage_gc</strong></a>(rdd, stages, analyzer)</dt></dl>
+ <dl><dt><a name="-opt_stage_spill"><strong>opt_stage_spill</strong></a>(rdd, stages, analyzer)</dt></dl>
+ <dl><dt><a name="-opt_stage_task_imbalance"><strong>opt_stage_task_imbalance</strong></a>(rdd, stages, analyzer)</dt></dl>
+ <dl><dt><a name="-source_of_imbalance"><strong>source_of_imbalance</strong></a>(stage, analyzer)</dt><dd><tt>Returns&nbsp;the&nbsp;source&nbsp;of&nbsp;imbalance&nbsp;(or&nbsp;the&nbsp;lack&nbsp;of&nbsp;it)&nbsp;for&nbsp;task&nbsp;run&nbsp;times.</tt></dd></dl>
+</td></tr></table><p>
+<table width="100%" cellspacing=0 cellpadding=2 border=0 summary="section">
+<tr bgcolor="#55aa55">
+<td colspan=3 valign=bottom>&nbsp;<br>
+<font color="#ffffff" face="helvetica, arial"><big><strong>Data</strong></big></font></td></tr>
+    
+<tr><td bgcolor="#55aa55"><tt>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</tt></td><td>&nbsp;</td>
+<td width="100%"><strong>BALANCED</strong> = 0<br>
+<strong>CORR_THRESHOLD_DEFAULT</strong> = 0.7<br>
+<strong>INHERENT</strong> = 1<br>
+<strong>KEY_DIST</strong> = 3<br>
+<strong>ONLY_ADAPTIVE</strong> = False<br>
+<strong>SKEWNESS_THRESHOLD_DEFAULT</strong> = 2<br>
+<strong>VARIABLE_COST</strong> = 2</td></tr></table>
+</body></html>
