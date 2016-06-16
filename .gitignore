@@ -3,6 +3,7 @@
 *.swp
 *.out
 *.tar.gz
+*.pyc
 
 # sbt specific
 .cache/

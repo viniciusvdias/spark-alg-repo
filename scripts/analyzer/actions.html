@@ -1,0 +1,136 @@
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.0 Transitional//EN">
+<html><head><title>Python: module actions</title>
+<meta charset="utf-8">
+</head><body bgcolor="#f0f0f8">
+
+<table width="100%" cellspacing=0 cellpadding=2 border=0 summary="heading">
+<tr bgcolor="#7799ee">
+<td valign=bottom>&nbsp;<br>
+<font color="#ffffff" face="helvetica, arial">&nbsp;<br><big><big><strong>actions</strong></big></big></font></td
+><td align=right valign=bottom
+><font color="#ffffff" face="helvetica, arial"><a href=".">index</a><br><a href="file:/home/viniciusvdias/Dropbox/projects/spark-alg-repo/scripts/analyzer/actions.py">/home/viniciusvdias/Dropbox/projects/spark-alg-repo/scripts/analyzer/actions.py</a></font></td></tr></table>
+    <p></p>
+<p>
+<table width="100%" cellspacing=0 cellpadding=2 border=0 summary="section">
+<tr bgcolor="#aa55cc">
+<td colspan=3 valign=bottom>&nbsp;<br>
+<font color="#ffffff" face="helvetica, arial"><big><strong>Modules</strong></big></font></td></tr>
+    
+<tr><td bgcolor="#aa55cc"><tt>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</tt></td><td>&nbsp;</td>
+<td width="100%"><table width="100%" summary="list"><tr><td width="25%" valign=top><a href="math.html">math</a><br>
+</td><td width="25%" valign=top></td><td width="25%" valign=top></td><td width="25%" valign=top></td></tr></table></td></tr></table><p>
+<table width="100%" cellspacing=0 cellpadding=2 border=0 summary="section">
+<tr bgcolor="#ee77aa">
+<td colspan=3 valign=bottom>&nbsp;<br>
+<font color="#ffffff" face="helvetica, arial"><big><strong>Classes</strong></big></font></td></tr>
+    
+<tr><td bgcolor="#ee77aa"><tt>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</tt></td><td>&nbsp;</td>
+<td width="100%"><dl>
+<dt><font face="helvetica, arial"><a href="actions.html#Action">Action</a>
+</font></dt><dd>
+<dl>
+<dt><font face="helvetica, arial"><a href="actions.html#NoAction">NoAction</a>
+</font></dt><dt><font face="helvetica, arial"><a href="actions.html#UpdateNumPartitions">UpdateNumPartitions</a>
+</font></dt><dt><font face="helvetica, arial"><a href="actions.html#UpdatePartitioner">UpdatePartitioner</a>
+</font></dt><dt><font face="helvetica, arial"><a href="actions.html#Warn">Warn</a>
+</font></dt></dl>
+</dd>
+</dl>
+ <p>
+<table width="100%" cellspacing=0 cellpadding=2 border=0 summary="section">
+<tr bgcolor="#ffc8d8">
+<td colspan=3 valign=bottom>&nbsp;<br>
+<font color="#000000" face="helvetica, arial"><a name="Action">class <strong>Action</strong></a></font></td></tr>
+    
+<tr bgcolor="#ffc8d8"><td rowspan=2><tt>&nbsp;&nbsp;&nbsp;</tt></td>
+<td colspan=2><tt>Every&nbsp;action&nbsp;has&nbsp;its&nbsp;own&nbsp;adaptive&nbsp;point.<br>&nbsp;</tt></td></tr>
+<tr><td>&nbsp;</td>
+<td width="100%">Methods defined here:<br>
+<dl><dt><a name="Action-__init__"><strong>__init__</strong></a>(self, adaptive_point)</dt></dl>
+
+</td></tr></table> <p>
+<table width="100%" cellspacing=0 cellpadding=2 border=0 summary="section">
+<tr bgcolor="#ffc8d8">
+<td colspan=3 valign=bottom>&nbsp;<br>
+<font color="#000000" face="helvetica, arial"><a name="NoAction">class <strong>NoAction</strong></a>(<a href="actions.html#Action">Action</a>)</font></td></tr>
+    
+<tr bgcolor="#ffc8d8"><td rowspan=2><tt>&nbsp;&nbsp;&nbsp;</tt></td>
+<td colspan=2><tt>No&nbsp;other&nbsp;action&nbsp;is&nbsp;suitable&nbsp;for&nbsp;this&nbsp;adaptive&nbsp;point.<br>&nbsp;</tt></td></tr>
+<tr><td>&nbsp;</td>
+<td width="100%">Methods defined here:<br>
+<dl><dt><a name="NoAction-__init__"><strong>__init__</strong></a>(self, adaptive_point)</dt><dd><tt>Construct&nbsp;a&nbsp;new&nbsp;'<a href="#NoAction">NoAction</a>'&nbsp;object<br>
+&nbsp;<br>
+:param&nbsp;adaptive_point:&nbsp;the&nbsp;name&nbsp;representing&nbsp;an&nbsp;adaptive&nbsp;point&nbsp;in&nbsp;the&nbsp;code</tt></dd></dl>
+
+<dl><dt><a name="NoAction-__repr__"><strong>__repr__</strong></a>(self)</dt></dl>
+
+</td></tr></table> <p>
+<table width="100%" cellspacing=0 cellpadding=2 border=0 summary="section">
+<tr bgcolor="#ffc8d8">
+<td colspan=3 valign=bottom>&nbsp;<br>
+<font color="#000000" face="helvetica, arial"><a name="UpdateNumPartitions">class <strong>UpdateNumPartitions</strong></a>(<a href="actions.html#Action">Action</a>)</font></td></tr>
+    
+<tr bgcolor="#ffc8d8"><td rowspan=2><tt>&nbsp;&nbsp;&nbsp;</tt></td>
+<td colspan=2><tt>With&nbsp;this&nbsp;action&nbsp;we&nbsp;keep&nbsp;the&nbsp;same&nbsp;partitioner&nbsp;and&nbsp;change&nbsp;the&nbsp;number&nbsp;of<br>
+partitions&nbsp;of&nbsp;this&nbsp;adaptive&nbsp;point.<br>&nbsp;</tt></td></tr>
+<tr><td>&nbsp;</td>
+<td width="100%">Methods defined here:<br>
+<dl><dt><a name="UpdateNumPartitions-__init__"><strong>__init__</strong></a>(self, adaptive_point, num_partitions)</dt><dd><tt>Construct&nbsp;a&nbsp;new&nbsp;'<a href="#UpdateNumPartitions">UpdateNumPartitions</a>'&nbsp;object.<br>
+&nbsp;<br>
+:param&nbsp;adaptive_point:&nbsp;the&nbsp;name&nbsp;representing&nbsp;an&nbsp;adaptive&nbsp;point&nbsp;in&nbsp;the&nbsp;code<br>
+:param&nbsp;num_partitions:&nbsp;the&nbsp;new&nbsp;number&nbsp;of&nbsp;partitions</tt></dd></dl>
+
+<dl><dt><a name="UpdateNumPartitions-__repr__"><strong>__repr__</strong></a>(self)</dt></dl>
+
+<dl><dt><a name="UpdateNumPartitions-scaled"><strong>scaled</strong></a>(self, factor)</dt><dd><tt>This&nbsp;function&nbsp;is&nbsp;called&nbsp;when&nbsp;one&nbsp;need&nbsp;to&nbsp;scale&nbsp;this&nbsp;action&nbsp;w.r.t.&nbsp;a&nbsp;factor<br>
+&nbsp;<br>
+:param&nbsp;factor:&nbsp;a&nbsp;float&nbsp;number&nbsp;that&nbsp;can&nbsp;increase&nbsp;(&gt;1.0)&nbsp;or&nbsp;decrease&nbsp;(&gt;=0<br>
+and&nbsp;&lt;1)&nbsp;the&nbsp;number&nbsp;of&nbsp;partitions&nbsp;of&nbsp;a&nbsp;new&nbsp;action.<br>
+:return:&nbsp;new&nbsp;modified&nbsp;action</tt></dd></dl>
+
+</td></tr></table> <p>
+<table width="100%" cellspacing=0 cellpadding=2 border=0 summary="section">
+<tr bgcolor="#ffc8d8">
+<td colspan=3 valign=bottom>&nbsp;<br>
+<font color="#000000" face="helvetica, arial"><a name="UpdatePartitioner">class <strong>UpdatePartitioner</strong></a>(<a href="actions.html#Action">Action</a>)</font></td></tr>
+    
+<tr bgcolor="#ffc8d8"><td rowspan=2><tt>&nbsp;&nbsp;&nbsp;</tt></td>
+<td colspan=2><tt>With&nbsp;this&nbsp;action&nbsp;we&nbsp;keep&nbsp;the&nbsp;same&nbsp;number&nbsp;of&nbsp;partitions&nbsp;and&nbsp;change&nbsp;the<br>
+partitioning&nbsp;strategy,&nbsp;i.e.,&nbsp;the&nbsp;partitioner.&nbsp;Supported&nbsp;values:<br>
+-&nbsp;rangePartitioner<br>
+-&nbsp;hashPartitioner<br>&nbsp;</tt></td></tr>
+<tr><td>&nbsp;</td>
+<td width="100%">Methods defined here:<br>
+<dl><dt><a name="UpdatePartitioner-__init__"><strong>__init__</strong></a>(self, adaptive_point, partitioner)</dt><dd><tt>Construct&nbsp;a&nbsp;new&nbsp;'<a href="#UpdatePartitioner">UpdatePartitioner</a>'&nbsp;object.<br>
+&nbsp;<br>
+:param&nbsp;adaptive_point:&nbsp;the&nbsp;name&nbsp;representing&nbsp;an&nbsp;adaptive&nbsp;point&nbsp;in&nbsp;the&nbsp;code<br>
+:param&nbsp;partitioner:&nbsp;a&nbsp;string&nbsp;representing&nbsp;which&nbsp;partitioner&nbsp;should&nbsp;be<br>
+employed</tt></dd></dl>
+
+<dl><dt><a name="UpdatePartitioner-__repr__"><strong>__repr__</strong></a>(self)</dt></dl>
+
+<hr>
+Data and other attributes defined here:<br>
+<dl><dt><strong>KNOWN_PARTITIONERS</strong> = ['hashPartitioner', 'rangePartitioner']</dl>
+
+</td></tr></table> <p>
+<table width="100%" cellspacing=0 cellpadding=2 border=0 summary="section">
+<tr bgcolor="#ffc8d8">
+<td colspan=3 valign=bottom>&nbsp;<br>
+<font color="#000000" face="helvetica, arial"><a name="Warn">class <strong>Warn</strong></a>(<a href="actions.html#Action">Action</a>)</font></td></tr>
+    
+<tr bgcolor="#ffc8d8"><td rowspan=2><tt>&nbsp;&nbsp;&nbsp;</tt></td>
+<td colspan=2><tt>No&nbsp;automatic&nbsp;action&nbsp;is&nbsp;possible.&nbsp;Usually&nbsp;this&nbsp;is&nbsp;related&nbsp;to&nbsp;specifics&nbsp;of&nbsp;the<br>
+user&nbsp;code.&nbsp;Thus&nbsp;we&nbsp;just&nbsp;warn&nbsp;the&nbsp;user.<br>&nbsp;</tt></td></tr>
+<tr><td>&nbsp;</td>
+<td width="100%">Methods defined here:<br>
+<dl><dt><a name="Warn-__init__"><strong>__init__</strong></a>(self, adaptive_point, msg)</dt><dd><tt>Construct&nbsp;a&nbsp;new&nbsp;'<a href="#Warn">Warn</a>'&nbsp;object.<br>
+&nbsp;<br>
+:param&nbsp;adaptive_point:&nbsp;the&nbsp;name&nbsp;representing&nbsp;an&nbsp;adaptive&nbsp;point&nbsp;in&nbsp;the&nbsp;code<br>
+:param&nbsp;msg:&nbsp;the&nbsp;message&nbsp;indicating&nbsp;the&nbsp;possible&nbsp;issue&nbsp;in&nbsp;the&nbsp;code</tt></dd></dl>
+
+<dl><dt><a name="Warn-__repr__"><strong>__repr__</strong></a>(self)</dt></dl>
+
+</td></tr></table></td></tr></table>
+</body></html>
