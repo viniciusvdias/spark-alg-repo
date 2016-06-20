@@ -25,7 +25,8 @@ import scala.annotation.tailrec
 import scala.collection.mutable.{Map, ArrayBuffer}
 import scala.reflect.ClassTag
 
-import util.OptHelper
+import br.ufmg.cs.systems.sparktuner.OptHelper
+import br.ufmg.cs.systems.sparktuner.rdd.AdaptableFunctions._
 
 object Eclat {
 
@@ -38,8 +39,8 @@ object Eclat {
    */
   case class Params(inputFile: String = null,
       minSupport: Double = 0.5,
-      numPartitions: Array[Int] = Array(128),
       optHelper: OptHelper = new OptHelper,
+      numPartitions: Array[Int] = Array(128),
       sep: String = "\\s+",
       logLevel: Level = Level.OFF) {
 
@@ -89,11 +90,6 @@ object Eclat {
     parser.opt ("numPartitions",
       s"number of partitions (reduce), default: ${defaultParams.numPartitions.mkString("[",",","]")}",
       (value,tmpParams) => tmpParams.copy (numPartitions = value.split(",").map(_.toInt))
-      )
-    
-    parser.opt ("optPlan",
-      s"optimization plan, default: ${defaultParams.optHelper}",
-      (value,tmpParams) => tmpParams.copy (optHelper = OptHelper (value))
       )
     
     parser.opt ("separator",
@@ -220,7 +216,7 @@ object Eclat {
     candidatesRDD
   }
 
-  def run(params: Params) {
+  def run(params: Params, confOpt: Option[SparkConf] = None) {
     // params as vals (lazy evaluation safety)
     val (inputFile, minSupport,
       reducePlan, optHelper, sep, logLevel) = params.getValues
@@ -230,15 +226,17 @@ object Eclat {
     log.setLevel(logLevel)
     Logger.getLogger("org").setLevel(logLevel)
     Logger.getLogger("akka").setLevel(logLevel)
+    Logger.getLogger("br").setLevel(logLevel)
 
     log.info (s"\n\n${params}\n")
 
     // create config
-    val conf = new SparkConf().setAppName(appName)
+    val conf = confOpt.getOrElse (new SparkConf().setAppName(appName))
     conf.set("spark.serializer", "org.apache.spark.serializer.KryoSerializer")
 
     // make spark context
     val sc = new SparkContext(conf)
+    preAdapt (sc)
     log.info (s"applicationId = ${sc.applicationId}")
     
     // start timer
@@ -254,8 +252,8 @@ object Eclat {
 
 
     // raw file input format and database partitioning
-    val linesRDD = sc.textFile(inputFile, nextReducePlan).
-      setName("adaptive-point-input")
+    val linesRDD = sc.textFile(inputFile, nextReducePlan,
+      "adaptive-point-input")
 
     // format lines into transactions
     val transactionsRDD = getTransactions (linesRDD, sep) 
@@ -269,13 +267,10 @@ object Eclat {
     log.info ("min support count = " + minCount)
 
     // 1-itemset counting and broadcast to first prunning
-    val intermDataRDD = transactionsRDD.
-      flatMap {_.iterator zip Iterator.continually(1)}
-    val frequencyRDD = optHelper.adaptRDD(
-        "adaptive-point-1itemset-counting",
-        intermDataRDD.reduceByKey (_ + _, nextReducePlan),
-        intermDataRDD
-      ).
+    val frequencyRDD = transactionsRDD.
+      flatMap {_.iterator zip Iterator.continually(1)}.
+      reduceByKey (_ + _, nextReducePlan,
+        "adaptive-point-1itemset-counting").
       filter {case (_,sup) => sup > minCount}.
       persist (StorageLevel.MEMORY_ONLY_SER).
       setName ("frequency_rdd")
@@ -311,11 +306,11 @@ object Eclat {
 
       // aggregate Tlist sizes for each itemset candidate (i.e. counting)
       // preserve only the frequent ones
-      val countsRDD = optHelper.adaptRDD ("adaptive-point-global-counting",
-        candidatesRDD.aggregateByKey (0, nextReducePlan) (
+      val countsRDD = candidatesRDD.
+        aggregateByKey (0, nextReducePlan, "adaptive-point-global-counting") (
           (c,tids) => c + tids.size,
           (c1,c2) => c1 + c2
-        ), candidatesRDD).filter {case (_,sup) => sup > minCount}
+        ).filter {case (_,sup) => sup > minCount}
 
       itemSets.append (countsRDD.persist (StorageLevel.MEMORY_ONLY_SER))
       writeItemSets (countsRDD,

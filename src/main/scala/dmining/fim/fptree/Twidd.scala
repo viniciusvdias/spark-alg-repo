@@ -6,7 +6,8 @@ import util.ParamsParser
 
 // common
 import util.Common
-import util.OptHelper
+import br.ufmg.cs.systems.sparktuner.OptHelper
+import br.ufmg.cs.systems.sparktuner.rdd.AdaptableFunctions._
 
 import org.apache.log4j.{Logger, Level}
 
@@ -201,10 +202,9 @@ object Twidd {
       muTreesRDD: RDD[(ItemSet,Any)],
       partitioner: Partitioner) = {
 
-    val fpTreesRDD = optHelper.adaptRDD ("adaptive-point-mergedmutrees",
-        muTreesRDD.partitionBy (partitioner),
-        muTreesRDD)
-      .mapPartitions ({
+    val fpTreesRDD = muTreesRDD.
+      partitionBy (partitioner, "adaptive-point-mergedmutrees").
+      mapPartitions ({
         case muTreesIter if !muTreesIter.isEmpty =>
           val tree = FPTree()
           while (!muTreesIter.isEmpty) {
@@ -238,14 +238,11 @@ object Twidd {
       rhoTreesRDD: RDD[(ItemSet,Any)],
       partitioner: Partitioner) = {
 
-    val finalFpTreesRDD = optHelper.adaptRDD ("adaptive-point-finalfptrees",
-        rhoTreesRDD.reduceByKey (partitioner,
-          (k,v) => (k,v) match {
-            case (t1:Int,t2:Int) => t1 + t2
-            case (t1:FPTree,t2:FPTree) => t1.mergeRhoTree(t2); t1
-          }),
-        rhoTreesRDD
-        )
+    val finalFpTreesRDD = rhoTreesRDD.reduceByKey (partitioner,
+      (k,v) => (k,v) match {
+        case (t1:Int,t2:Int) => t1 + t2
+        case (t1:FPTree,t2:FPTree) => t1.mergeRhoTree(t2); t1
+      })
 
     finalFpTreesRDD
   }
@@ -284,7 +281,7 @@ object Twidd {
     override def equals(other: Any): Boolean = other.isInstanceOf[TreePartitioner]
   }
 
-  def run(params: Params) {
+  def run(params: Params, confOpt: Option[SparkConf] = None) {
 
     // params as vals (lazy evaluation safety)
     val (inputFile, minSupport, numPartitions, optHelper,
@@ -298,7 +295,7 @@ object Twidd {
     
     log.info (s"\n\n${params}\n")
 
-    val conf = new SparkConf().setAppName(appName)
+    val conf = confOpt.getOrElse(new SparkConf().setAppName(appName))
     conf.set("spark.serializer", "org.apache.spark.serializer.KryoSerializer")
     conf.set("spark.kryo.registrator", "dmining.fim.fptree.TreeOptRegistrator")
     val sc = new SparkContext(conf)
@@ -307,9 +304,8 @@ object Twidd {
     var t0 = System.nanoTime
 
     // frequency counting
-    val linesRDD = sc.textFile(inputFile,
-      numPartitions(0) // PARTITIONING POINT 1: Reading Input
-    ).setName ("adaptive-point-input")
+    val linesRDD = sc.textFile(inputFile, numPartitions(0),
+      "adaptive-point-input") // PARTITIONING POINT 1: Reading Input
     
     // collection of transactions
     val transactionsRDD = getTransactions (linesRDD, sep)
@@ -323,11 +319,10 @@ object Twidd {
     log.info (s"support count = ${minCount} (${minSupport * 100}%)")
 
     // count 1-itemsets
-    val intermDataRDD = transactionsRDD.
-      flatMap (trans => trans.iterator zip Iterator.continually(1))
-    val frequencyRDD = optHelper.adaptRDD ("adaptive-point-1itemset-counting",
-        intermDataRDD.reduceByKey (_ + _, numPartitions(1)),
-        intermDataRDD).
+    val frequencyRDD = transactionsRDD.
+      flatMap (trans => trans.iterator zip Iterator.continually(1)).
+      reduceByKey ((x:Int,y:Int) => x+y, numPartitions(1),
+        "adaptive-point-1itemset-counting").
       filter (_._2 > minCount)
 
     // broadcast variables

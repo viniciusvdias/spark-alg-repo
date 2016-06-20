@@ -4,6 +4,7 @@
 *.out
 *.tar.gz
 *.pyc
+*.eclat
 
 # sbt specific
 .cache/

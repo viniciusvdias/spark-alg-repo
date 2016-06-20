@@ -99,7 +99,7 @@ class RDD:
       if not self.parent_ids:
          return self
       else:
-         assert self.parent_id
+         assert self.parent_ids
          return
 
    def __eq__(r1, r2):
@@ -142,7 +142,7 @@ class Task:
          "Remote Bytes Read", 0))
       self.stage = stage
       
-      # shuffle read metrics
+      # shuffle write metrics
       shuffle_write_metrics = get_or_else (task_data["Task Metrics"],
          "Shuffle Write Metrics")
       self.shuffle_write_records = int(get_or_else (shuffle_write_metrics,
