@@ -1,0 +1,28 @@
+# 1. Choose OS (Ubuntu 14.04.3 LTS Server Edition 64bit, ~2 CORE, 7.5GB RAM)
+sudo: required
+dist: trusty
+
+# 2. Choose language and target JDKs for parallel builds.
+language: scala
+jdk:
+  - oraclejdk7
+
+# 3. Setup cache directory for SBT and Maven.
+cache:
+  directories:
+  - $HOME/.sbt
+#  - $HOME/.m2
+
+# 4. Turn off notifications.
+notifications:
+  email: true
+
+# 5. Run maven install before
+#install:
+#  - export MAVEN_SKIP_RC=1
+#  - build/mvn -T 4 -q -DskipTests -Pyarn -Phadoop-2.3 -Pkinesis-asl -Phive -Phive-thriftserver install
+
+# 6. Run test
+script:
+  - sbt clean
+  - sbt test
