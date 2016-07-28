@@ -11,18 +11,13 @@ jdk:
 cache:
   directories:
   - $HOME/.sbt
-#  - $HOME/.m2
 
 # 4. Turn off notifications.
 notifications:
-  email: true
-
-# 5. Run maven install before
-#install:
-#  - export MAVEN_SKIP_RC=1
-#  - build/mvn -T 4 -q -DskipTests -Pyarn -Phadoop-2.3 -Pkinesis-asl -Phive -Phive-thriftserver install
+  email: false
 
 # 6. Run test
 script:
-  - sbt clean
+  - pwd
+  - ls lib
   - sbt test
